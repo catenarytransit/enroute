@@ -11,6 +11,19 @@
 - 🔊 **Integrated Enunciator**: Professional audio announcements and visual captions for enhanced accessibility.
 - ⚙️ **Advanced Configuration**: On-the-fly customisation of location, routes, and time formats through an intuitive modal.
 
+## Setup
+
+```bash
+pnpm install
+pnpm approve-builds # approve esbuild and sharp
+```
+
+then you can start the dev server:
+
+```bash
+pnpm dev
+```
+
 ## Authors
 
 Initial design and prototype by Samuel Sharp <samuel@catenarymaps.org>, Sam Jeffs <sam@catenarymaps.org>
