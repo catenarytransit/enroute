@@ -1,6 +1,6 @@
 # Catenary Enroute
 
-**Catenary Enroute** is a premium, high-performance transit signage and onboard information system. Designed for both station platforms and vehicle interiors, it provides live arrivals, journey progress, and accessibility features with a state-of-the-art aesthetic.
+**Catenary Enroute** is an open-source high-performance transit signage and onboard information system. Designed for both station platforms and vehicle interiors, it provides live arrivals, journey progress, and accessibility features with a state-of-the-art aesthetic.
 
 ## ✨ Key Features
 
