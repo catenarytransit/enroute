@@ -12,15 +12,14 @@
     "@astrojs/check": "^0.9.6",
     "@astrojs/react": "^4.4.2",
     "@tailwindcss/vite": "^4.1.18",
-    "@types/leaflet": "^1.9.21",
+    "@types/maplibre-gl": "^1.13.2",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "astro": "^5.16.6",
-    "leaflet": "^1.9.4",
+    "maplibre-gl": "^5.15.0",
     "motion": "^12.23.26",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "react-leaflet": "^5.0.0",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3"
   }

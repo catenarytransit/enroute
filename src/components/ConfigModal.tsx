@@ -1,37 +1,6 @@
-import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-
-// Fix Leaflet icons
-// @ts-ignore
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
-
-function RecenterMap({ lat, lon }: { lat: number | null, lon: number | null }) {
-    const map = useMap();
-    useEffect(() => {
-        if (lat && lon) {
-            map.flyTo([lat, lon], map.getZoom(), { animate: true });
-        }
-    }, [lat, lon, map]);
-    return null;
-}
-
-function LocationMarker({ lat, lon, setLat, setLon }: { lat: number | null, lon: number | null, setLat: (l: string) => void, setLon: (l: string) => void }) {
-    useMapEvents({
-        click(e) {
-            setLat(e.latlng.lat.toFixed(6));
-            setLon(e.latlng.lng.toFixed(6));
-        },
-    });
-
-    return lat && lon ? <Marker position={[lat, lon]} /> : null;
-}
+import { useEffect, useState, useRef } from 'react';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 
 export function ConfigModal({ onClose }: { onClose: () => void }) {
     const [configLat, setConfigLat] = useState("");
@@ -39,7 +8,55 @@ export function ConfigModal({ onClose }: { onClose: () => void }) {
     const [primaryColor, setPrimaryColor] = useState("");
     const [secondaryColor, setSecondaryColor] = useState("");
     const [allowedModes, setAllowedModes] = useState<number[]>([]);
-    const [use24HourTime, setUse24HourTime] = useState(false);
+    const [use24HourTime, setUse24HourTime] = useState(true);
+
+    const mapContainer = useRef<HTMLDivElement>(null);
+    const map = useRef<maplibregl.Map | null>(null);
+    const marker = useRef<maplibregl.Marker | null>(null);
+
+    // Initialize Map
+    useEffect(() => {
+        if (map.current || !mapContainer.current) return;
+
+        const lat = configLat ? parseFloat(configLat) : 34.0522;
+        const lon = configLon ? parseFloat(configLon) : -118.2437;
+
+        map.current = new maplibregl.Map({
+            container: mapContainer.current,
+            style: 'https://maps.catenarymaps.org/light-style.json',
+            center: [lon, lat],
+            zoom: 13
+        });
+
+        map.current.on('click', (e) => {
+            const { lng, lat } = e.lngLat;
+            setConfigLat(lat.toFixed(6));
+            setConfigLon(lng.toFixed(6));
+        });
+    }, []);
+
+    // Update map/marker when coords change
+    useEffect(() => {
+        if (!map.current) return;
+        const lat = parseFloat(configLat);
+        const lon = parseFloat(configLon);
+
+        if (!isNaN(lat) && !isNaN(lon)) {
+            if (!marker.current) {
+                marker.current = new maplibregl.Marker()
+                    .setLngLat([lon, lat])
+                    .addTo(map.current);
+            } else {
+                marker.current.setLngLat([lon, lat]);
+            }
+            map.current.flyTo({ center: [lon, lat], zoom: 13, essential: true });
+        } else {
+            if (marker.current) {
+                marker.current.remove();
+                marker.current = null;
+            }
+        }
+    }, [configLat, configLon]);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -52,7 +69,7 @@ export function ConfigModal({ onClose }: { onClose: () => void }) {
         const urlPrimary = getSetting('primary');
         const urlSecondary = getSetting('secondary');
         const urlModes = getSetting('modes');
-        const url24h = getSetting('24h') === 'true';
+        const url24h = getSetting('24h') !== 'false';
         if (urlModes) {
             // Handle both legacy JSON and new CSV formats
             try {
@@ -129,22 +146,7 @@ export function ConfigModal({ onClose }: { onClose: () => void }) {
                     <div className="space-y-4">
                         <label className="block text-sm font-bold uppercase tracking-wider opacity-80">Location Override (Click Map)</label>
                         <div className="h-[32vh] w-full rounded-lg overflow-hidden border-2 border-slate-500 relative z-0">
-                            <MapContainer
-                                center={[
-                                    configLat ? parseFloat(configLat) : 34.0522,
-                                    configLon ? parseFloat(configLon) : -118.2437
-                                ] as [number, number]}
-                                zoom={13}
-                                style={{ height: '100%', width: '100%' }}
-                            >
-                                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap' />
-                                <RecenterMap lat={configLat ? parseFloat(configLat) : null} lon={configLon ? parseFloat(configLon) : null} />
-                                <LocationMarker
-                                    lat={configLat ? parseFloat(configLat) : null}
-                                    lon={configLon ? parseFloat(configLon) : null}
-                                    setLat={setConfigLat} setLon={setConfigLon}
-                                />
-                            </MapContainer>
+                            <div ref={mapContainer} style={{ height: '100%', width: '100%' }} />
                         </div>
                         <div className="flex justify-between items-center bg-slate-900/40 p-3 rounded-lg border border-slate-500 text-sm font-mono">
                             <div className="flex space-x-6">

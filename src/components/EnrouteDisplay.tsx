@@ -17,7 +17,7 @@ export function EnrouteDisplay() {
   const query = new URLSearchParams(window.location.search);
   const getSetting = (key: string, defaultValue: string = "") => query.get(key) || localStorage.getItem(`enroute_${key}`) || defaultValue;
 
-  const use24h = getSetting('24h') === 'true';
+  const use24h = getSetting('24h') !== 'false';
 
   let chateau = query.get('chateau');
   let trip = query.get('trip');

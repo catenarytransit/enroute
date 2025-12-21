@@ -54,7 +54,7 @@ export function DefaultDisplay() {
      */
     const getSetting = (key: string, defaultValue: string = "") => query.get(key) || localStorage.getItem(`enroute_${key}`) || defaultValue;
 
-    const use24h = getSetting('24h') === 'true';
+    const use24h = getSetting('24h') !== 'false';
 
     /**
      * Effect hook for initial location resolution.
