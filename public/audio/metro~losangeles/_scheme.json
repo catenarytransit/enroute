@@ -1,0 +1,56 @@
+{
+    "route": {
+        "801": {
+            "scheme": "metro"
+        },
+        "802": {
+            "scheme": "metro"
+        },
+        "803": {
+            "scheme": "metro"
+        },
+        "804": {
+            "scheme": "metro"
+        },
+        "805": {
+            "scheme": "metro"
+        },
+        "807": {
+            "scheme": "metro"
+        }
+    },
+    "direction": {
+        "801": [
+            {
+                "headsign": "Long Bch",
+                "station": {
+                    "audio": ["801DLB"],
+                    "text": "The A Line train towards Long Beach is now arriving. Please step back and allow customers to exit the train before boarding. Bikes and strollers should enter through doors marked with yellow decals."
+                }
+            },
+            {
+                "headsign": "Azusa",
+                "station": {
+                    "audio": ["801APU"],
+                    "text": "The A Line train towards Azusa is now arriving. Please step back and allow customers to exit the train before boarding. Bikes and strollers should enter through doors marked with yellow decals."
+                }
+            }
+        ],
+        "804": [
+            {
+                "headsign": "S Monica",
+                "station": {
+                    "audio": ["804DSM"],
+                    "text": "The E Line train towards Santa Monica and the Westside is now arriving. Please step back and allow customers to exit the train before boarding. Bikes and strollers should enter through doors marked with yellow decals."
+                }
+            },
+            {
+                "headsign": "East LA",
+                "station": {
+                    "audio": ["804ELA"],
+                    "text": "The E Line train towards East LA is now arriving. Please step back and allow customers to exit the train before boarding. Bikes and strollers should enter through doors marked with yellow decals."
+                }
+            }
+        ]
+    }
+}

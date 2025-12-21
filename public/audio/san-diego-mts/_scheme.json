@@ -1,0 +1,95 @@
+{
+    "route": {
+        "510": {
+            "scheme": "metro"
+        },
+        "520": {
+            "scheme": "metro"
+        },
+        "530": {
+            "scheme": "metro"
+        }
+    },
+    "direction": [
+        {
+            "link": {
+                "route": "520",
+                "headsign": "El Cajon"
+            },
+            "audio": "TD-ARN",
+            "text": "This is a Orange Line Trolley to Arnele Avenue in El Cajon."
+        },
+        {
+            "link": {
+                "route": "530",
+                "headsign": "12th/Imp'l"
+            },
+            "audio": "TD-GIM",
+            "text": "This is a Green Line Trolley to downtown."
+        },
+        {
+            "link": {
+                "route": "520",
+                "headsign": "Courthouse"
+            },
+            "audio": "TD-OCH",
+            "text": "This is a Orange Line Trolley to downtown."
+        },
+        {
+            "link": {
+                "route": "530",
+                "headsign": "Santee"
+            },
+            "audio": "TD-SNT",
+            "text": "This is a Green Line Trolley to Santee."
+        },
+        {
+            "link": {
+                "route": "510",
+                "headsign": "San Ysidro"
+            },
+            "audio": "TD-SYI",
+            "text": "This is a Blue Line Trolley to the Mexican border."
+        },
+        {
+            "link": {
+                "route": "510",
+                "headsign": "UTC"
+            },
+            "audio": "TD-UTC",
+            "text": "This is a Blue Line Trolley to UTC."
+        }
+    ],
+    "append": [
+        "75004",
+        "75005",
+        "75024",
+        "75025",
+        "75026",
+        "75027",
+        "75030",
+        "75031",
+        "75042",
+        "75043",
+        "75062",
+        "75063",
+        "75076",
+        "75077",
+        "75082",
+        "75083",
+        "75086",
+        "75087",
+        "75090",
+        "75091",
+        "75100",
+        "75102",
+        "75103",
+        "77776",
+        "77778",
+        "77787"
+    ],
+    "custom": {
+            "audio": ["welcome"],
+            "text": "I'd like to remind all passengers that a validated PRONTO card or app is required while riding the Trolley. There is no smoking or eating permitted onboard the Trolley and drinks must be in a spill-proof or sealed container."
+    }
+}

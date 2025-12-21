@@ -1,0 +1,11 @@
+{
+    "route": {
+        "*": {
+            "scheme": "regional"
+        }
+    },
+    "custom": {
+            "audio": ["tickets"],
+            "text": "Please be prepared to present your Metrolink ticket upon request."
+    }
+}
