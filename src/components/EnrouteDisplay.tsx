@@ -351,7 +351,7 @@ export function EnrouteDisplay() {
 
         {announcementTextChunk &&
           <div className={`fixed bottom-0 left-0 w-full px-[10${hUnit}] py-[1.5${vUnit}] text-center z-[100]`} style={{ background: 'rgba(0,0,0,0.85)', color: 'white' }}>
-            <span className='font-bold uppercase tracking-tight' style={{ fontSize: `3.5${vUnit}` }}>
+            <span className='font-bold tracking-tight' style={{ fontSize: `3.5${vUnit}` }}>
               {announcementTextChunk === '[MSG]' ? <span className='pulse opacity-70 italic'>&rarr; Announcement approaching</span> : announcementTextChunk.replace('[MSG]', '')}
             </span>
           </div>

@@ -122,16 +122,16 @@ export function ConfigModal({ onClose }: { onClose: () => void }) {
                 {/* Modal Header */}
                 <div className='flex justify-between items-start px-8 pt-8'>
                     <div className="flex flex-col">
-                        <h2 className="text-3xl font-black uppercase tracking-tighter leading-none">Configuration</h2>
+                        <h2 className="text-3xl font-bold  leading-none">Configuration</h2>
                         <div className="flex items-center gap-6 mt-3">
-                            <span className="text-[10px] font-bold text-seashore tracking-[0.2em] uppercase opacity-90" style={{ color: 'var(--catenary-seashore)' }}>System Preferences</span>
+                            <span className="text-[10px] font-bold text-seashore opacity-90" style={{ color: 'var(--catenary-seashore)' }}>System Preferences</span>
                             <button
                                 onClick={() => {
                                     const params = new URLSearchParams(window.location.search);
                                     ['mode', 'trip', 'chateau', 'stop'].forEach(p => params.delete(p));
                                     window.location.search = params.toString();
                                 }}
-                                className="bg-blue-600 hover:bg-blue-500 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-md transition-all active:scale-95 shadow-md border border-blue-400/30"
+                                className="bg-blue-600 hover:bg-blue-500 text-[10px] font-black px-4 py-1.5 rounded-md transition-all active:scale-95 shadow-md border border-blue-400/30"
                                 style={{ backgroundColor: 'var(--catenary-seashore)', color: 'var(--catenary-darksky)' }}
                             >
                                 Go Home
@@ -144,7 +144,7 @@ export function ConfigModal({ onClose }: { onClose: () => void }) {
                 <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-10">
                     {/* Left Column: Location */}
                     <div className="space-y-4">
-                        <label className="block text-sm font-bold uppercase tracking-wider opacity-80">Location Override (Click Map)</label>
+                        <label className="block text-sm font-bold opacity-80">Location Override (Click Map)</label>
                         <div className="h-[32vh] w-full rounded-lg overflow-hidden border-2 border-slate-500 relative z-0">
                             <div ref={mapContainer} style={{ height: '100%', width: '100%' }} />
                         </div>
@@ -153,7 +153,7 @@ export function ConfigModal({ onClose }: { onClose: () => void }) {
                                 <span>LAT: {configLat ? parseFloat(configLat).toFixed(4) : 'AUTO'}</span>
                                 <span>LON: {configLon ? parseFloat(configLon).toFixed(4) : 'AUTO'}</span>
                             </div>
-                            {(configLat || configLon) && <button onClick={() => { setConfigLat(""); setConfigLon("") }} className="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded border border-slate-500 text-[10px] uppercase font-bold transition-colors">Reset</button>}
+                            {(configLat || configLon) && <button onClick={() => { setConfigLat(""); setConfigLon("") }} className="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded border border-slate-500 text-[10px] font-bold transition-colors">Reset</button>}
                         </div>
                     </div>
 
@@ -163,24 +163,24 @@ export function ConfigModal({ onClose }: { onClose: () => void }) {
                             {/* Color Pickers */}
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider mb-2 opacity-80">Primary Color</label>
+                                    <label className="block text-xs font-bold mb-2 opacity-80">Primary Color</label>
                                     <div className="flex items-center space-x-3 bg-slate-900/40 p-2 rounded-lg border border-slate-500">
                                         <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="w-12 h-10 rounded cursor-pointer border-none bg-transparent" />
-                                        <span className="text-xs font-mono uppercase truncate">{primaryColor}</span>
+                                        <span className="text-xs font-mono truncate">{primaryColor}</span>
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider mb-2 opacity-80">Secondary Color</label>
+                                    <label className="block text-xs font-bold mb-2 opacity-80">Secondary Color</label>
                                     <div className="flex items-center space-x-3 bg-slate-900/40 p-2 rounded-lg border border-slate-500">
                                         <input type="color" value={secondaryColor} onChange={e => setSecondaryColor(e.target.value)} className="w-12 h-10 rounded cursor-pointer border-none bg-transparent" />
-                                        <span className="text-xs font-mono uppercase truncate">{secondaryColor}</span>
+                                        <span className="text-xs font-mono truncate">{secondaryColor}</span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Mode Filters */}
                             <div>
-                                <label className="block text-xs font-bold uppercase tracking-wider mb-3 opacity-80">Agency / Mode Filters</label>
+                                <label className="block text-xs font-bold mb-3 opacity-80">Agency / Mode Filters</label>
                                 <div className="grid grid-cols-3 gap-2">
                                     {[
                                         { id: 3, label: "Bus" },
@@ -202,7 +202,7 @@ export function ConfigModal({ onClose }: { onClose: () => void }) {
                                                 }}
                                                 className="form-checkbox h-4 w-4 text-blue-500 rounded border-slate-500 bg-slate-900"
                                             />
-                                            <span className="text-xs font-bold uppercase">{mode.label}</span>
+                                            <span className="text-xs font-bold ">{mode.label}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -218,7 +218,7 @@ export function ConfigModal({ onClose }: { onClose: () => void }) {
                                         className="form-checkbox h-6 w-6 text-blue-500 rounded border-slate-500 bg-slate-900"
                                     />
                                     <div>
-                                        <span className="block text-sm font-bold uppercase">24-Hour Time</span>
+                                        <span className="block text-sm font-bold ">24-Hour Time</span>
                                         <span className="block text-[10px] opacity-60">Display hours 00-23 without AM/PM</span>
                                     </div>
                                 </label>
@@ -231,7 +231,7 @@ export function ConfigModal({ onClose }: { onClose: () => void }) {
                 <div className="p-8 border-t border-slate-700/50 bg-black/20">
                     <button
                         onClick={saveConfig}
-                        className="w-full py-4 text-xs font-black uppercase tracking-[0.4em] rounded-lg transition-all active:scale-[0.98] shadow-lg border-2 border-white/10 hover:border-white/30"
+                        className="w-full py-4 text-xs font-bold  rounded-lg transition-all active:scale-[0.98] shadow-lg border-2 border-white/10 hover:border-white/30"
                         style={{ backgroundColor: 'var(--catenary-seashore)', color: 'var(--catenary-darksky)' }}
                     >
                         Save & Apply Settings
@@ -239,7 +239,7 @@ export function ConfigModal({ onClose }: { onClose: () => void }) {
                 </div>
 
                 {/* Footer Info */}
-                <div className="bg-slate-900/60 py-3 px-8 border-t border-slate-500 flex justify-between items-center text-[10px] uppercase font-bold tracking-widest opacity-60">
+                <div className="bg-slate-900/60 py-3 px-8 border-t border-slate-500 flex justify-between items-center text-[10px] font-bold tracking-widest opacity-60">
                     <span>Catenary Enroute Screen • v2.0</span>
                     <span>All changes saved to LocalStorage</span>
                 </div>
