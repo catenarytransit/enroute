@@ -42,13 +42,6 @@ export class EnrouteManager {
 
         // Handle case where trip is finished or invalid index
         if (nextStopIndex === -1 && birchData.stoptimes.length > 0) {
-            // Assume at end? Or fallback. Original code didn't handle -1 explicitly but findIndex might return it.
-            // If -1, maybe loop? Original code used nextStopIndex assuming it's valid or check logic?
-            // "let nextStopName: string = birchData.stoptimes[nextStopIndex].name;" would crash if -1.
-            // We'll reproduce original behavior (maybe it crashes or they assume data is valid).
-            // Safest is to default to last stop if finished, or 0 if not started?
-            // But logic says > now. If all are < now, trip is over.
-            // Let's assume valid for now or handle gracefully
             if (nextStopIndex === -1) nextStopIndex = birchData.stoptimes.length - 1;
         }
 

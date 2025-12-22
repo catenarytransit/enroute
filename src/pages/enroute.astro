@@ -1,8 +1,8 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import EnrouteDisplay from "../components/svelte/EnrouteDisplay.svelte";
+import { EnrouteDisplay } from "../components/EnrouteDisplay";
 ---
 
 <Layout>
-    <EnrouteDisplay client:only="svelte" />
+    <EnrouteDisplay client:only="react" />
 </Layout>
