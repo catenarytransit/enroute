@@ -16,10 +16,10 @@
 		<script is:inline>
 			// Apply font preference immediately to prevent FOUC
 			const font = localStorage.getItem("enroute_font");
-			if (font === "helvetica") {
+			if (font === "nimbus") {
 				document.documentElement.style.setProperty(
 					"--font-main",
-					"var(--font-helvetica)",
+					"var(--font-nimbus)",
 				);
 			}
 
@@ -29,8 +29,8 @@
 
 			switch (theme) {
 				case "blue_white": // White on Blue #0220fa
-					root.style.setProperty("--catenary-background", "#0220fa");
-					root.style.setProperty("--catenary-darksky", "#0220fa");
+					root.style.setProperty("--catenary-background", "#0047c4");
+					root.style.setProperty("--catenary-darksky", "#0047c4");
 					root.style.setProperty("--catenary-seashore", "#ffffff");
 					root.style.setProperty("--catenary-text", "#ffffff");
 					break;

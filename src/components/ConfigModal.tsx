@@ -165,7 +165,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ onClose }) => {
                             className="w-full bg-slate-900/40 border border-slate-500 rounded-lg p-3 text-sm font-bold text-white focus:outline-none focus:border-blue-500 transition-colors"
                         >
                             <option value="barlow">Barlow (Default)</option>
-                            <option value="helvetica">Helvetica</option>
+                            <option value="nimbus">Nimbus Sans</option>
                         </select>
                     </div>
                 </div>

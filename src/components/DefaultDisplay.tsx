@@ -140,7 +140,7 @@ export const DefaultDisplay: React.FC<DefaultDisplayProps> = () => {
         >
             {/* Header Bar */}
             <div
-                className="absolute top-0 left-0 w-full text-white flex items-center justify-between z-20 border-b-2 border-slate-500 shadow-md"
+                className="absolute top-0 left-0 w-full  flex items-center justify-between z-20 border-b-2 border-slate-500 shadow-md"
                 style={{
                     height: isPortrait ? "5vh" : "6vh",
                     paddingLeft: isPortrait ? "3vw" : "1.5vw",
@@ -173,17 +173,17 @@ export const DefaultDisplay: React.FC<DefaultDisplayProps> = () => {
                                      const event = new CustomEvent("openConfig");
                                      window.dispatchEvent(event);
                                 }}
-                                className="text-[10px] font-bold text-white px-2 py-0.5 rounded transition-colors border border-slate-500"
+                                className="text-[10px] font-bold  px-2 py-0.5 rounded transition-colors border border-slate-500"
                             >
                                 Overall settings
                             </button>
                             <div className="w-px h-4 bg-slate-600 mx-1"></div>
                             <span className="text-[10px] font-bold text-slate-400">GRID</span>
                             <div className="flex items-center gap-1">
-                                <label className="text-xs text-white" htmlFor="rows">Rows</label>
+                                <label className="text-xs " htmlFor="rows">Rows</label>
                                 <select
                                     id="rows"
-                                    className="bg-slate-700 rounded px-1 py-0.5 text-xs text-white border border-slate-600 outline-none hover:bg-slate-600"
+                                    className="bg-slate-700 rounded px-1 py-0.5 text-xs  border border-slate-600 outline-none hover:bg-slate-600"
                                     value={layout.rows}
                                     onChange={(e) => updateGridSize(parseInt(e.target.value), layout.cols)}
                                 >
@@ -196,10 +196,10 @@ export const DefaultDisplay: React.FC<DefaultDisplayProps> = () => {
                             </div>
                             <span className="text-slate-600 font-bold">×</span>
                             <div className="flex items-center gap-1">
-                                <label className="text-xs text-white" htmlFor="cols">Cols</label>
+                                <label className="text-xs " htmlFor="cols">Cols</label>
                                 <select
                                     id="cols"
-                                    className="bg-slate-700 rounded px-1 py-0.5 text-xs text-white border border-slate-600 outline-none hover:bg-slate-600"
+                                    className="bg-slate-700 rounded px-1 py-0.5 text-xs  border border-slate-600 outline-none hover:bg-slate-600"
                                     value={layout.cols}
                                     onChange={(e) => updateGridSize(layout.rows, parseInt(e.target.value))}
                                 >

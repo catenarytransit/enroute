@@ -1,23 +1,30 @@
 @import "tailwindcss";
 
 @font-face {
-    font-family: 'Helvetica';
-    src: url('/fonts/Helvetica/Helvetica.ttf') format('truetype');
+    font-family: 'Nimbus Sans';
+    src: url('/fonts/Nimbus/NimbusSans-Regular.ttf') format('truetype');
     font-weight: 400;
     font-style: normal;
 }
 
 @font-face {
-    font-family: 'Helvetica';
-    src: url('/fonts/Helvetica/Helvetica-Bold.ttf') format('truetype');
+    font-family: 'Nimbus Sans';
+    src: url('/fonts/Nimbus/NimbusSans-Bold.ttf') format('truetype');
     font-weight: 700;
     font-style: normal;
 }
 
 @font-face {
-    font-family: 'Helvetica';
-    src: url('/fonts/Helvetica/Helvetica-Oblique.ttf') format('truetype');
+    font-family: 'Nimbus Sans';
+    src: url('/fonts/Nimbus/NimbusSans-Italic.ttf') format('truetype');
     font-weight: 400;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Nimbus Sans';
+    src: url('/fonts/Nimbus/NimbusSans-BoldItalic.ttf') format('truetype');
+    font-weight: 700;
     font-style: italic;
 }
 
@@ -27,7 +34,7 @@
   --color-seashore: #42A7C5;
   --color-danger: #EF3841;
   --font-barlow: 'Barlow', sans-serif;
-  --font-helvetica: 'Helvetica', sans-serif;
+  --font-nimbus: 'Nimbus Sans', sans-serif;
 }
 
 :root {
