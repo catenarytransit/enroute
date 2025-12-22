@@ -22,6 +22,10 @@
         type: "departures" | "alerts";
         name?: string;
         allowedModes?: number[];
+        displayMode?: "simple" | "train_departure" | "grouped_by_route";
+        useRouteColor?: boolean;
+        showTripShortName?: boolean;
+        showRouteShortName?: boolean;
     };
 
     let nearbyData: NearbyDeparturesFromCoordsV2Response | null = null;
@@ -47,6 +51,7 @@
     const getSetting = (key: string) =>
         params.get(key) || localStorage.getItem(`enroute_${key}`);
     const use24h = getSetting("24h") !== "false";
+    const theme = getSetting("theme") || "default";
 
     // Clock
     let currentTime = new Date();
@@ -238,6 +243,12 @@
                                     tripId: trip.trip_id,
                                     stopId: trip.stop_id,
                                     routeType: dep.route_type,
+                                    tripShortName: trip.trip_short_name,
+                                    platform:
+                                        (trip.platform ??
+                                            stopInfo?.platform_code) ||
+                                        undefined,
+                                    directionId: dir.direction_id,
                                 });
                             });
                         });
@@ -287,14 +298,17 @@
 <svelte:window bind:innerWidth bind:innerHeight />
 
 <div
-    class="fixed top-0 left-0 w-screen h-screen bg-slate-900 overflow-hidden font-sans"
+    class="fixed top-0 left-0 w-screen h-screen overflow-hidden font-sans"
+    style="background-color: var(--catenary-background)"
 >
     <!-- Header Bar -->
     <div
-        class="absolute top-0 left-0 w-full bg-[#1a4475] text-white flex items-center justify-between z-20 border-b-2 border-slate-500 shadow-md"
+        class="absolute top-0 left-0 w-full text-white flex items-center justify-between z-20 border-b-2 border-slate-500 shadow-md"
         style="height: {isPortrait ? '5vh' : '6vh'}; padding-left: {isPortrait
             ? '3vw'
-            : '1.5vw'}; padding-right: {isPortrait ? '3vw' : '1.5vw'}"
+            : '1.5vw'}; padding-right: {isPortrait
+            ? '3vw'
+            : '1.5vw'}; background-color: var(--catenary-darksky)"
     >
         <div class="flex items-center gap-4">
             <span
@@ -313,11 +327,11 @@
 
             {#if isEditing}
                 <div
-                    class="flex items-center gap-2 ml-4 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-600 shadow-lg"
+                    class="flex items-center gap-2 ml-4 px-2 py-0.5 rounded border border-slate-600 shadow-lg"
                 >
                     <button
                         on:click={() => dispatch("openConfig")}
-                        class="text-[10px] font-bold text-white bg-slate-600 hover:bg-slate-500 px-2 py-0.5 rounded transition-colors border border-slate-500"
+                        class="text-[10px] font-bold text-white px-2 py-0.5 rounded transition-colors border border-slate-500"
                     >
                         Overall settings
                     </button>
@@ -421,6 +435,7 @@
                         {allDepartures}
                         {activeAlerts}
                         {isEditing}
+                        {theme}
                         className={isEditing
                             ? "border-dashed border-2 border-yellow-500/50 bg-slate-800/80"
                             : ""}

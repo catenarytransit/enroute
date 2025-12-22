@@ -6,6 +6,10 @@
         type: "departures" | "alerts";
         name?: string;
         allowedModes?: number[];
+        displayMode?: "simple" | "train_departure" | "grouped_by_route";
+        useRouteColor?: boolean;
+        showTripShortName?: boolean;
+        showRouteShortName?: boolean;
     };
 
     const dispatch = createEventDispatcher();
@@ -13,6 +17,11 @@
     let name = pane.name || "";
     let type = pane.type;
     let allowedModes: number[] = pane.allowedModes || [];
+    let displayMode: "simple" | "train_departure" | "grouped_by_route" =
+        pane.displayMode || "simple";
+    let useRouteColor = pane.useRouteColor || false;
+    let showTripShortName = pane.showTripShortName ?? true;
+    let showRouteShortName = pane.showRouteShortName ?? true;
 
     function toggleMode(id: number) {
         if (allowedModes.includes(id)) {
@@ -23,7 +32,15 @@
     }
 
     function save() {
-        dispatch("save", { name, type, allowedModes });
+        dispatch("save", {
+            name,
+            type,
+            allowedModes,
+            displayMode,
+            useRouteColor,
+            showTripShortName,
+            showRouteShortName,
+        });
     }
 
     function close() {
@@ -109,10 +126,12 @@
                                     mode.id,
                                 )
                                     ? 'bg-blue-900/50 border-blue-500/50'
-                                    : 'bg-slate-900 border-slate-700 hover:bg-slate-800'}"
+                                    : 'bg-slate-900 border-slate-700 hover:bg-slate-700'}"
+                                for="mode-{mode.id}"
                             >
                                 <input
                                     type="checkbox"
+                                    id="mode-{mode.id}"
                                     checked={allowedModes.includes(mode.id)}
                                     on:change={() => toggleMode(mode.id)}
                                     class="rounded border-slate-500 bg-slate-900 text-blue-500"
@@ -132,6 +151,65 @@
                     </p>
                 </div>
             {/if}
+
+            <div>
+                <label
+                    class="block text-xs font-bold text-slate-400 mb-2"
+                    for="displayMode">Display Mode</label
+                >
+                <select
+                    id="displayMode"
+                    bind:value={displayMode}
+                    class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white outline-none focus:border-blue-500 mb-2"
+                >
+                    <option value="simple">Simple (CTA)</option>
+                    <option value="train_departure">Train Departure</option>
+                    <option value="grouped_by_route">Grouped by Route</option>
+                </select>
+
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        bind:checked={useRouteColor}
+                        class="rounded border-slate-500 bg-slate-900 text-blue-500"
+                    />
+                    <span class="text-xs font-bold text-slate-300"
+                        >Use Route Colour as Background</span
+                    >
+                </label>
+
+                {#if displayMode === "train_departure"}
+                    <label
+                        class="flex items-center space-x-2 cursor-pointer mt-2"
+                        for="showTripShortName"
+                    >
+                        <input
+                            type="checkbox"
+                            id="showTripShortName"
+                            bind:checked={showTripShortName}
+                            class="rounded border-slate-500 bg-slate-900 text-blue-500"
+                        />
+                        <span class="text-xs font-bold text-slate-300"
+                            >Show Trip Short Name</span
+                        >
+                    </label>
+
+                    <label
+                        class="flex items-center space-x-2 cursor-pointer"
+                        for="showRouteShortName"
+                    >
+                        <input
+                            type="checkbox"
+                            id="showRouteShortName"
+                            bind:checked={showRouteShortName}
+                            class="rounded border-slate-500 bg-slate-900 text-blue-500"
+                        />
+                        <span class="text-xs font-bold text-slate-300"
+                            >Show Route Short Name</span
+                        >
+                    </label>
+                {/if}
+            </div>
         </div>
         <div
             class="p-4 bg-slate-900 border-t border-slate-700 flex justify-end gap-3"

@@ -11,4 +11,7 @@ export interface DisplayItem {
     tripId: string;
     stopId: string;
     routeType?: number;
+    tripShortName?: string;
+    platform?: string;
+    directionId?: string;
 }

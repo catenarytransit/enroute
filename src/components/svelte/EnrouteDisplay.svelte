@@ -313,10 +313,12 @@
     {#if tripInfo}
         <!-- Header Bar -->
         <div
-            class="fixed top-0 left-0 w-full bg-[#1a4475] text-white flex items-center justify-between z-50 border-b-2 border-slate-500"
+            class="fixed top-0 left-0 w-full text-white flex items-center justify-between z-50 border-b-2 border-slate-500"
             style="height: 6{vUnit}; padding-left: {isPortrait
                 ? '5vw'
-                : '3vw'}; padding-right: {isPortrait ? '5vw' : '3vw'}"
+                : '3vw'}; padding-right: {isPortrait
+                ? '5vw'
+                : '3vw'}; background-color: var(--catenary-darksky)"
         >
             <span
                 class="font-bold truncate"
@@ -512,8 +514,8 @@
 
     {#if !tripInfo}
         <div
-            class="fixed top-0 left-0 w-full bg-[#1a4475] text-white flex items-center justify-between px-[2{hUnit}] z-50 border-b-2 border-slate-500"
-            style="height: 6{vUnit}"
+            class="fixed top-0 left-0 w-full text-white flex items-center justify-between px-[2{hUnit}] z-50 border-b-2 border-slate-500"
+            style="height: 6{vUnit}; background-color: var(--catenary-darksky)"
         >
             <span class="font-bold truncate" style="font-size: 3{vUnit}"
                 >Loading...</span

@@ -186,14 +186,19 @@
 
 <svelte:window bind:innerWidth bind:innerHeight />
 
-<div class="w-screen h-screen overflow-hidden relative bg-slate-900 font-sans">
+<div
+    class="w-screen h-screen overflow-hidden relative font-sans"
+    style="background-color: var(--catenary-background)"
+>
     {#if arrivals.length >= 1}
         <!-- Header Bar -->
         <div
-            class="fixed top-0 left-0 w-full bg-[#1a4475] text-white flex items-center justify-between z-50 border-b-2 border-slate-500"
+            class="fixed top-0 left-0 w-full text-white flex items-center justify-between z-50 border-b-2 border-slate-500"
             style="height: 6{vUnit}; padding-left: {isPortrait
                 ? '5vw'
-                : '3vw'}; padding-right: {isPortrait ? '5vw' : '3vw'}"
+                : '3vw'}; padding-right: {isPortrait
+                ? '5vw'
+                : '3vw'}; background-color: var(--catenary-darksky)"
         >
             <span
                 class="font-bold truncate"
@@ -219,8 +224,8 @@
         <!-- Alerts Ticker -->
         {#if activeAlerts.length > 0}
             <div
-                class="fixed bottom-0 left-0 w-full bg-[#1a4475] text-white font-bold whitespace-nowrap overflow-hidden z-20 border-t-2 border-white"
-                style="padding: 0.5{vUnit}; font-size: 1.8{vUnit}"
+                class="fixed bottom-0 left-0 w-full text-white font-bold whitespace-nowrap overflow-hidden z-20 border-t-2 border-white"
+                style="padding: 0.5{vUnit}; font-size: 1.8{vUnit}; background-color: var(--catenary-darksky)"
             >
                 <div class="animate-marquee inline-block px-[100{hUnit}]">
                     {activeAlerts.join(" • ")}
@@ -371,10 +376,12 @@
 
     {#if arrivals.length < 1}
         <div
-            class="fixed top-0 left-0 w-full bg-[#1a4475] text-white flex items-center justify-between z-50 border-b-2 border-slate-500"
+            class="fixed top-0 left-0 w-full text-white flex items-center justify-between z-50 border-b-2 border-slate-500"
             style="height: 6{vUnit}; padding-left: {isPortrait
                 ? '5vw'
-                : '3vw'}; padding-right: {isPortrait ? '5vw' : '3vw'}"
+                : '3vw'}; padding-right: {isPortrait
+                ? '5vw'
+                : '3vw'}; background-color: var(--catenary-darksky)"
         >
             <span class="font-bold truncate" style="font-size: 3{vUnit}"
                 >Loading...</span
@@ -397,8 +404,8 @@
             </p>
         {:else if loading}
             <p
-                class="font-semibold text-seashore w-screen h-screen flex items-center justify-center"
-                style="font-size: 2{vUnit}"
+                class="font-semibold text-white w-screen h-screen flex items-center justify-center"
+                style="font-size: 2{vUnit}; color: var(--catenary-seashore)"
             >
                 Loading...
             </p>

@@ -235,6 +235,7 @@ export interface Stop {
     lon: number
     timezone: string
     url: string | null
+    platform_code: string | null
 }
 
 export interface DebugInfo {

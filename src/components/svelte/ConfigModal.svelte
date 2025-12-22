@@ -9,8 +9,7 @@
 
     let configLat = "";
     let configLon = "";
-    let primaryColor = "";
-    let secondaryColor = "";
+    let themePreference = "default";
     let use24HourTime = true;
     let fontPreference = "barlow";
 
@@ -26,14 +25,12 @@
 
         const urlLat = getSetting("lat");
         const urlLon = getSetting("lon");
-        const urlPrimary = getSetting("primary");
-        const urlSecondary = getSetting("secondary");
+        const urlTheme = getSetting("theme");
         const url24h = getSetting("24h") !== "false";
 
         if (urlLat) configLat = urlLat;
         if (urlLon) configLon = urlLon;
-        if (urlPrimary) primaryColor = urlPrimary;
-        if (urlSecondary) secondaryColor = urlSecondary;
+        if (urlTheme) themePreference = urlTheme;
         use24HourTime = url24h;
 
         const storedFont = localStorage.getItem("enroute_font");
@@ -91,8 +88,7 @@
 
     function saveConfig() {
         const prefix = "enroute_";
-        localStorage.setItem(`${prefix}primary`, primaryColor);
-        localStorage.setItem(`${prefix}secondary`, secondaryColor);
+        localStorage.setItem(`${prefix}theme`, themePreference);
         localStorage.setItem(`${prefix}24h`, use24HourTime.toString());
         localStorage.setItem(`${prefix}font`, fontPreference);
 
@@ -203,46 +199,27 @@
             <!-- Right Column: Settings -->
             <div class="flex flex-col justify-between">
                 <div class="space-y-8">
-                    <!-- Color Pickers -->
-                    <div class="grid grid-cols-2 gap-6">
-                        <div>
-                            <label
-                                class="block text-xs font-bold mb-2 opacity-80"
-                                for="primaryColor">Primary Color</label
+                    <!-- Theme Selection -->
+                    <div>
+                        <label
+                            class="block text-xs font-bold mb-2 opacity-80"
+                            for="themeSelect">Color Theme</label
+                        >
+                        <select
+                            id="themeSelect"
+                            bind:value={themePreference}
+                            class="w-full bg-slate-900/40 border border-slate-500 rounded-lg p-3 text-sm font-bold focus:outline-none focus:border-blue-500 transition-colors"
+                        >
+                            <option value="default">Default Catenary</option>
+                            <option value="blue_white"
+                                >White on Blue (Swiss & German)</option
                             >
-                            <div
-                                class="flex items-center space-x-3 bg-slate-900/40 p-2 rounded-lg border border-slate-500"
+                            <option value="ns_light">NS Light (Dutch)</option>
+                            <option value="ns_dark">NS Dark</option>
+                            <option value="midnight"
+                                >Midnight (White on Black)</option
                             >
-                                <input
-                                    type="color"
-                                    bind:value={primaryColor}
-                                    id="primaryColor"
-                                    class="w-12 h-10 rounded cursor-pointer border-none bg-transparent"
-                                />
-                                <span class="text-xs font-mono truncate"
-                                    >{primaryColor}</span
-                                >
-                            </div>
-                        </div>
-                        <div>
-                            <label
-                                class="block text-xs font-bold mb-2 opacity-80"
-                                for="secondaryColor">Secondary Color</label
-                            >
-                            <div
-                                class="flex items-center space-x-3 bg-slate-900/40 p-2 rounded-lg border border-slate-500"
-                            >
-                                <input
-                                    type="color"
-                                    bind:value={secondaryColor}
-                                    id="secondaryColor"
-                                    class="w-12 h-10 rounded cursor-pointer border-none bg-transparent"
-                                />
-                                <span class="text-xs font-mono truncate"
-                                    >{secondaryColor}</span
-                                >
-                            </div>
-                        </div>
+                        </select>
                     </div>
 
                     <!-- Options -->

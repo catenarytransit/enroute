@@ -22,6 +22,44 @@
 					"var(--font-helvetica)",
 				);
 			}
+
+			// Apply theme preference
+			const theme = localStorage.getItem("enroute_theme") || "default";
+			const root = document.documentElement;
+
+			switch (theme) {
+				case "blue_white": // White on Blue #0220fa
+					root.style.setProperty("--catenary-background", "#0220fa");
+					root.style.setProperty("--catenary-darksky", "#0220fa");
+					root.style.setProperty("--catenary-seashore", "#ffffff");
+					root.style.setProperty("--catenary-text", "#ffffff");
+					break;
+				case "ns_light": // NS Light #1e2657 on White
+					root.style.setProperty("--catenary-background", "#ffffff");
+					root.style.setProperty("--catenary-darksky", "#f0f0f0");
+					root.style.setProperty("--catenary-seashore", "#1e2657");
+					root.style.setProperty("--catenary-text", "#1e2657");
+					break;
+				case "ns_dark": // NS Dark White on #1e2657
+					root.style.setProperty("--catenary-background", "#1e2657");
+					root.style.setProperty("--catenary-darksky", "#161d40");
+					root.style.setProperty("--catenary-seashore", "#ffffff");
+					root.style.setProperty("--catenary-text", "#ffffff");
+					break;
+				case "midnight": // Midnight (White on Black)
+					root.style.setProperty("--catenary-background", "#000000");
+					root.style.setProperty("--catenary-darksky", "#000000");
+					root.style.setProperty("--catenary-seashore", "#ffffff");
+					root.style.setProperty("--catenary-text", "#ffffff");
+					break;
+				default: // Default Catenary
+					// Variables are already set in CSS, but explicit reset helps if switching
+					root.style.setProperty("--catenary-background", "#06121F");
+					root.style.setProperty("--catenary-darksky", "#0A233F");
+					root.style.setProperty("--catenary-seashore", "#42A7C5");
+					root.style.setProperty("--catenary-text", "#ffffff");
+					break;
+			}
 		</script>
 	</head>
 	<body>

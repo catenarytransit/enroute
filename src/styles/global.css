@@ -35,6 +35,7 @@
     --catenary-darksky: #0A233F;
     --catenary-seashore: #42A7C5;
     --catenary-danger: #EF3841;
+    --catenary-text: #ffffff;
     --font-main: var(--font-barlow);
 }
 
@@ -49,7 +50,7 @@ body {
     height: 56.25vw;
     position: fixed;
     width: 100%;
-    color: white;
+    color: var(--catenary-text);
     overflow: hidden;
 }
 
