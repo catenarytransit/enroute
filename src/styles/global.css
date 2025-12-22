@@ -35,6 +35,8 @@
   --color-danger: #EF3841;
   --font-barlow: 'Barlow', sans-serif;
   --font-nimbus: 'Nimbus Sans', sans-serif;
+  --font-noto: 'Noto Sans', sans-serif;
+  --font-fira: 'Fira Sans', sans-serif;
 }
 
 :root {
