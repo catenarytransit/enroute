@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import EnrouteDisplay from "./EnrouteDisplay.svelte";
+    import JREnrouteDisplay from "./JREnrouteDisplay.svelte";
     import StationDisplay from "./StationDisplay.svelte";
     import DefaultDisplay from "./DefaultDisplay.svelte";
     import ConfigModal from "./ConfigModal.svelte";
@@ -25,6 +26,8 @@
 
 {#if mode === "enroute"}
     <EnrouteDisplay />
+{:else if mode === "jr-enroute"}
+    <JREnrouteDisplay />
 {:else if mode === "station"}
     <StationDisplay />
 {:else}
