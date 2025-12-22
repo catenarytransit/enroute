@@ -154,14 +154,14 @@ export const Pane: React.FC<PaneProps> = ({
 
     return (
         <div
-            className={`relative overflow-hidden rounded-lg border border-slate-600 flex flex-col ${className} ${
+            className={`relative overflow-hidden rounded-lg border ${theme === "blue_white" ? "border-white" : "border-slate-600"} flex flex-col ${className} ${
                 theme === "default" ? "bg-slate-800/50" : ""
             }`}
             style={style}
         >
             {/* Header / Config Bar */}
             <div
-                className={`flex items-center justify-between px-3 py-1 border-b border-slate-600 ${
+                className={`flex items-center justify-between px-3 py-1 border-b ${theme === "blue_white" ? "border-white" : "border-slate-600"} ${
                     isEditing ? "border-yellow-500/50" : ""
                 } ${theme === "default" ? "bg-slate-900/80" : ""}`}
             >
@@ -196,7 +196,7 @@ export const Pane: React.FC<PaneProps> = ({
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left font-mono text-sm border-spacing-0">
                                             <thead>
-                                                <tr className="text-xs font-bold text-slate-400 border-b border-slate-700">
+                                                <tr className={`text-xs font-bold text-slate-400 border-b ${theme === "blue_white" ? "border-white" : "border-slate-700"}`}>
                                                     {config.showRouteShortName !== false && (
                                                         <th className="px-2 py-1">Rte</th>
                                                     )}
@@ -214,8 +214,8 @@ export const Pane: React.FC<PaneProps> = ({
                                                         key={item.key}
                                                         className={`items-center ${
                                                             config.useRouteColor
-                                                                ? "text-white font-bold"
-                                                                : "border-b border-slate-700 last:border-0"
+                                                                    ? "text-white font-bold"
+                                                                    : `border-b ${theme === "blue_white" ? "border-white" : "border-slate-700"} last:border-0`
                                                         } ${
                                                             clickableTrips
                                                                 ? "cursor-pointer hover:bg-white/10"
@@ -264,7 +264,7 @@ export const Pane: React.FC<PaneProps> = ({
                                             >
                                                 {/* Route Badge */}
                                                 <div
-                                                    className="w-12 flex items-center justify-center font-bold text-2xl shrink-0 p-2 border-r border-slate-700"
+                                                    className={`w-12 flex items-center justify-center font-bold text-2xl shrink-0 p-2 border-r ${theme === "blue_white" ? "border-white" : "border-slate-700"}`}
                                                     style={{
                                                         backgroundColor:
                                                             config.groupingTheme === "ratp"
@@ -297,7 +297,7 @@ export const Pane: React.FC<PaneProps> = ({
                                                             key={direction.headsign}
                                                             className={`flex items-center justify-between p-2 gap-2 ${
                                                                 idx < group.directions.length - 1
-                                                                    ? "border-b border-slate-700"
+                                                                    ? `border-b ${theme === "blue_white" ? "border-white" : "border-slate-700"}`
                                                                     : ""
                                                             } ${idx % 2 === 0 ? "bg-white/5" : ""}`}
                                                         >
