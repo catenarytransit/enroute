@@ -6,8 +6,6 @@
     import type { PaneConfig } from "../types/PaneConfig"; // Ensure this matches usage
 
     export let config: PaneConfig;
-    // export let allDepartures: DisplayItem[] = []; // Removed
-    // export let activeAlerts: string[] = []; // Removed
     export let isEditing = false;
     export let style = "";
     export let className = "";
@@ -292,14 +290,20 @@
                                             <div
                                                 class="w-8 h-8 rounded-full border-2 border-current flex items-center justify-center"
                                             >
-                                                {group.routeShortName}
+                                                {group.routeShortName.replace(
+                                                    " Line",
+                                                    "",
+                                                )}
                                             </div>
                                         {:else}
                                             <!-- Standard Style: Simple Text -->
                                             <span
                                                 class="text-white"
                                                 style="color: {group.routeColor}"
-                                                >{group.routeShortName}</span
+                                                >{group.routeShortName.replace(
+                                                    " Line",
+                                                    "",
+                                                )}</span
                                             >
                                         {/if}
                                     </div>
