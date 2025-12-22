@@ -41,22 +41,6 @@ export function fixRouteIcon(chateau: string, rid: string): string | null {
 
 export function fixRouteColor(chateau: string, rid: string, rcol?: string): string {
     const fixPatterns: Record<string, Record<string, string>> = {
-        // for the station arrivals beta
-        'metro~losangeles': {
-            '801': '#0072BC',
-            '802': '#EB131B',
-            '803': '#58A738',
-            '805': '#A05DA5',
-            '804': '#FDB913',
-            '807': '#E470AB',
-            '901': '#FC4C02',
-            '910': '#ADB8BF',
-            '950': '#ADB8BF',
-            '720': '#D11242',
-            '754': '#D11242',
-            '761': '#D11242',
-            '*': '#E16710'
-        },
         // actual placements for final version
         'amtrak': {
             '60': '#669900',
