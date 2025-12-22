@@ -7,25 +7,18 @@
         BirchTripInformation,
         TripInformation,
     } from "../types/TripInformation";
-    import {
-        fixHeadsignText,
-        fixRouteColor,
-        fixRouteName,
-        fixRouteTextColor,
-        fixRunNumber,
-        fixStationArt,
-        fixStationName,
-    } from "../data/agencyspecific";
     import { enunciator } from "../enunciator";
-    import type { EnunciatorMessage } from "../types/Enunciator";
-    import { EnunciatorState } from "../types/Enunciator";
+    import { fixStationName } from "../data/agencyspecific";
+
+    import { EnrouteManager } from "../../utils/EnrouteManager";
 
     // State
     let tripInfo: TripInformation | undefined = undefined;
     let error: string | null = null;
     let announcementTextChunk: string | null = null;
 
-    let stopsEnunciated: string[] = [];
+    // Logic Manager
+    const manager = new EnrouteManager();
 
     // Config
     const params = new URLSearchParams(window.location.search);
@@ -57,200 +50,40 @@
                 throw new Error(
                     "Trip ID and Chateâu must be provided in the URL query parameters",
                 );
-            let raw = await fetch(
-                `https://birch.catenarymaps.org/get_trip_information/${chateau}/?trip_id=${trip}`,
-            );
-            if (raw.status === 404)
-                throw new Error(`Trip ${trip} not found in Chateâu ${chateau}`);
-            let birchData = (await raw.json()) as BirchTripInformation;
 
-            let nextStopIndex = birchData.stoptimes.findIndex(
-                (stopTime: BirchStopTime) =>
-                    (stopTime.rt_arrival?.time ||
-                        stopTime.scheduled_arrival_time_unix_seconds) >
-                    Date.now() / 1000,
-            );
-            let nextStopName: string = birchData.stoptimes[nextStopIndex].name;
-
-            let lastStopIndex = birchData.stoptimes.length - 1;
-            let lastStopName: string = birchData.stoptimes[lastStopIndex].name;
-
-            let timeToStop: number =
-                (birchData.stoptimes[nextStopIndex].rt_arrival?.time ||
-                    birchData.stoptimes[nextStopIndex]
-                        .scheduled_arrival_time_unix_seconds) -
-                Date.now() / 1000;
-            let isApproachingStop: boolean = timeToStop < 40;
-
-            // Construct proper list of stops to display
-            let stopsToDisplay: {
-                name: string;
-                minutes: string;
-                arrivalTime: string;
-                stopId?: string;
-                isSpacer?: boolean;
-                count?: number;
-                key: string;
-            }[] = [];
-
-            const addStop = (index: number) => {
-                if (index < 0 || index >= birchData.stoptimes.length) return;
-                const s = birchData.stoptimes[index];
-                const arrivalUnix =
-                    s.rt_arrival?.time || s.scheduled_arrival_time_unix_seconds;
-                const date = new Date(arrivalUnix * 1000);
-                const timeString = date
-                    .toLocaleTimeString([], {
-                        hour: "numeric",
-                        minute: "2-digit",
-                        hour12: !use24h,
-                    })
-                    .toLowerCase()
-                    .replace(" ", "");
-
-                stopsToDisplay.push({
-                    name: fixStationName(s.name),
-                    minutes:
-                        isApproachingStop && index === nextStopIndex
-                            ? "DUE"
-                            : Math.floor(
-                                  Math.max(
-                                      0,
-                                      Math.round(
-                                          arrivalUnix - Date.now() / 1000,
-                                      ) / 60,
-                                  ),
-                              ).toString(),
-                    arrivalTime: timeString,
-                    stopId: s.stop_id,
-                    key: `${s.stop_id}-${index}`, // Ensure unique key
-                });
-            };
-
-            const MAX_STOPS_TOTAL = isPortrait ? 10 : 8;
-
-            let remainingStops = lastStopIndex - nextStopIndex + 1;
-
-            if (remainingStops <= MAX_STOPS_TOTAL) {
-                for (let i = nextStopIndex; i <= lastStopIndex; i++) {
-                    addStop(i);
-                }
-            } else {
-                const stopsToShowBeforeSpacer = MAX_STOPS_TOTAL - 2;
-                for (let i = 0; i < stopsToShowBeforeSpacer; i++) {
-                    addStop(nextStopIndex + i);
-                }
-
-                let highestAddedIndex =
-                    nextStopIndex + stopsToShowBeforeSpacer - 1;
-                let gapSize = lastStopIndex - highestAddedIndex - 1;
-
-                if (gapSize > 0) {
-                    stopsToDisplay.push({
-                        name: `${gapSize} more stops`,
-                        count: gapSize,
-                        minutes: "",
-                        arrivalTime: "",
-                        isSpacer: true,
-                        key: "spacer",
-                    });
-                }
-
-                addStop(lastStopIndex);
-            }
-
-            let newTripInfo: TripInformation = {
+            const result = await manager.fetchTripInfo(
                 chateau,
-                run: fixRunNumber(
-                    chateau,
-                    birchData.route_id,
-                    birchData.trip_short_name,
-                    birchData.vehicle?.id || null,
-                    trip,
-                ),
-                headsign: fixHeadsignText(
-                    birchData.trip_headsign || lastStopName,
-                    birchData.route_short_name ||
-                        birchData.route_long_name ||
-                        birchData.route_id,
-                ),
-                nextStops: stopsToDisplay,
-                nextStop: fixStationName(nextStopName),
-                nextStopID: birchData.stoptimes[nextStopIndex].stop_id,
-                nextStopNumber: nextStopIndex,
-                finalStop: fixStationName(lastStopName),
-                finalStopID: birchData.stoptimes[lastStopIndex].stop_id,
-                isApp: isApproachingStop,
-                isTerm: nextStopName === lastStopName,
-                route: fixRouteName(
-                    chateau,
-                    birchData.route_short_name ||
-                        birchData.route_long_name ||
-                        birchData.route_id,
-                    birchData.route_id,
-                ),
-                routeID: birchData.route_id,
-                color: fixRouteColor(
-                    chateau,
-                    birchData.route_id,
-                    birchData.color,
-                ),
-                textColor: fixRouteTextColor(
-                    chateau,
-                    birchData.route_id,
-                    birchData.text_color,
-                ),
-                artwork: fixStationArt(chateau, birchData.route_id),
-            };
+                trip,
+                use24h,
+                isPortrait,
+            );
+            tripInfo = result.tripInfo;
 
-            tripInfo = newTripInfo;
+            if (result.announcement) {
+                announcementTextChunk = result.announcementText;
+                enunciator.play(result.announcement);
 
-            if (
-                enunciator &&
-                !stopsEnunciated.includes(
-                    `${newTripInfo.nextStopID}:${newTripInfo.isApp ? EnunciatorState.APPROACHING : EnunciatorState.NEXT}`,
-                )
-            ) {
-                stopsEnunciated.push(
-                    `${newTripInfo.nextStopID}:${newTripInfo.isApp ? EnunciatorState.APPROACHING : EnunciatorState.NEXT}`,
-                );
-                let voicedAnnouncement: EnunciatorMessage | null =
-                    await enunciator.sync(
-                        chateau,
-                        isApproachingStop
-                            ? nextStopName === lastStopName
-                                ? EnunciatorState.TERMINUS
-                                : EnunciatorState.APPROACHING
-                            : EnunciatorState.NEXT,
-                        null,
-                        newTripInfo,
-                    );
-                if (voicedAnnouncement) {
-                    announcementTextChunk = "[MSG]";
-                    enunciator.play(voicedAnnouncement);
-                    setTimeout(() => {
-                        if (voicedAnnouncement) {
-                            let chunks =
-                                voicedAnnouncement.text.match(/.{1,53}/g);
+                // Text ticker logic
+                setTimeout(() => {
+                    if (result.announcement) {
+                        let chunks = result.announcement.text.match(/.{1,53}/g);
 
-                            if (chunks) {
-                                let nextChunk = chunks.shift();
-                                if (nextChunk)
-                                    announcementTextChunk = nextChunk;
-                                let chunkInterval = setInterval(() => {
-                                    if (chunks && chunks.length > 0) {
-                                        let nextChunk = chunks.shift();
-                                        if (nextChunk)
-                                            announcementTextChunk = nextChunk;
-                                    } else {
-                                        clearInterval(chunkInterval);
-                                        announcementTextChunk = null;
-                                    }
-                                }, 3500);
-                            }
+                        if (chunks) {
+                            let nextChunk = chunks.shift();
+                            if (nextChunk) announcementTextChunk = nextChunk;
+                            let chunkInterval = setInterval(() => {
+                                if (chunks && chunks.length > 0) {
+                                    let nextChunk = chunks.shift();
+                                    if (nextChunk)
+                                        announcementTextChunk = nextChunk;
+                                } else {
+                                    clearInterval(chunkInterval);
+                                    announcementTextChunk = null;
+                                }
+                            }, 3500);
                         }
-                    }, 1600);
-                }
+                    }
+                }, 1600);
             }
         } catch (err: any) {
             error = err.message;

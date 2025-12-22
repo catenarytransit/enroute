@@ -45,75 +45,16 @@
     // Clock
     let currentTime = new Date();
 
+    import { StationAnnouncer } from "../../utils/StationAnnouncer";
+
     // Announcement Loop
-    let announcementActive = false;
+    const announcer = new StationAnnouncer((chunk) => {
+        announcementTextChunk = chunk;
+    });
 
-    const stationAnnounce = async (arrival?: Arrival) => {
-        let voicedAnnouncement;
-        if (arrival) {
-            voicedAnnouncement = await enunciator.sync(
-                selectedRegion || "",
-                EnunciatorState.STATION,
-                arrival,
-                null,
-            );
-        } else {
-            voicedAnnouncement = await enunciator.sync(
-                selectedRegion || "",
-                EnunciatorState.STATION,
-                null,
-                null,
-            );
-        }
-
-        if (voicedAnnouncement) {
-            if (announcementActive) {
-                // Retry logic if busy
-                let reCheckForAnnouncement = setInterval(() => {
-                    if (!announcementActive) {
-                        clearInterval(reCheckForAnnouncement);
-                        if (arrival) {
-                            stationAnnounce(arrival);
-                        } else {
-                            setTimeout(() => stationAnnounce(), 3000);
-                        }
-                    }
-                }, 2000);
-            } else {
-                announcementActive = true;
-                announcementTextChunk = "[MSG]";
-
-                setTimeout(() => {
-                    if (voicedAnnouncement) {
-                        let chunks = voicedAnnouncement.text.match(/.{1,53}/g);
-                        if (chunks) {
-                            let nextChunk = chunks.shift();
-                            if (nextChunk) announcementTextChunk = nextChunk;
-
-                            let chunkInterval = setInterval(() => {
-                                if (chunks && chunks.length > 0) {
-                                    let nextChunk = chunks.shift();
-                                    if (nextChunk)
-                                        announcementTextChunk = nextChunk;
-                                } else {
-                                    if (!announcementActive) {
-                                        clearInterval(chunkInterval);
-                                        announcementTextChunk = null;
-                                    }
-                                }
-                            }, 3500);
-                        }
-                    }
-                }, 1600);
-
-                enunciator.play(voicedAnnouncement).then(() => {
-                    announcementActive = false;
-                    // Note: The original logic cleared text chunk here or via the interval logic?
-                    // The interval logic clears it if !announcementActive.
-                    // So setting it to false here allows the interval to clear and exit.
-                });
-            }
-        }
+    const stationAnnounce = (arrival?: Arrival) => {
+        if (!selectedRegion) return;
+        announcer.announce(selectedRegion, arrival);
     };
 
     onMount(() => {

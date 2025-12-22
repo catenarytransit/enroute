@@ -1,0 +1,8 @@
+---
+import Layout from "../layouts/Layout.astro";
+import StationDisplay from "../components/svelte/StationDisplay.svelte";
+---
+
+<Layout>
+    <StationDisplay client:only="svelte" />
+</Layout>

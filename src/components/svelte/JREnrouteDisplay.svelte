@@ -33,32 +33,6 @@
     let clockInterval: any;
     let chunkInterval: any;
 
-    // View state
-    // view logic from the React component seems mixed. There is a "dummy" view at the bottom of the React file
-    // which uses `currentView` ('current' or 'next'), and the "real" logic which uses `tripInfo`.
-    // The user provided code has a commented out section at the top and the end.
-    // The ACTIVE code in the provided text block (Step 0) has `currentView` and a dummy render.
-    // BUT the comments show the logic for fetching trips.
-    // Wait, let me re-read the code provided in Step 0 carefully.
-
-    // The provided code in Step 0 for JREnrouteDisplay.tsx has:
-    // 1. `fetchTripInfo` logic (fetching from birch.catenarymaps.org)
-    // 2. `tripInfo` state
-    // 3. BUT later it sets `currentView` state and defines `currentStationData`, `nextStationData` (static data).
-    // 4. Then it checks `if (!tripInfo) { return (<div></div>); }`
-    // 5. It DOES render using `tripInfo` in the final return, specifically `tripInfo.finalStop`, `tripInfo.nextStop`, etc.
-    // 6. AND it iterates over `tripInfo.nextStops`.
-
-    // It looks like the user might have been mid-refactor or provided a file with some mixed active/commented code.
-    // However, the `fetchTripInfo` sets `tripInfo`.
-    // And the render uses `tripInfo`.
-    // The render ALSO uses `currentView` (Now stopping at / Next).
-    // The render shown in the active part of the file is DIFFERENT from the commented out render at the bottom.
-    // The active render is the "Green line" vertical list style.
-    // The commented out render (bottom) looks like the "Blue header" style.
-
-    // I should implement the ACTIVE render (the one not commented out).
-
     // Query params
     let chateau: string | null = null;
     let trip: string | null = null;
