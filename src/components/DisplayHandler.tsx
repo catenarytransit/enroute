@@ -1,4 +1,5 @@
 import { EnrouteDisplay } from './EnrouteDisplay';
+import { JREnrouteDisplay } from './JREnrouteDisplay';
 import { DefaultDisplay } from './DefaultDisplay';
 import { useEffect, useState } from 'react';
 import { StationDisplay } from './StationDisplay';
@@ -33,8 +34,9 @@ export default function DisplayHandler() {
     
     return <>
         {mode === 'enroute' && <EnrouteDisplay />}
+        {mode === 'jr-enroute' && <JREnrouteDisplay />}
         {mode === 'station' && <StationDisplay />}
-        {(mode !== 'enroute' && mode !== 'station' && mode !== null) && <DefaultDisplay />}
+        {(mode !== 'enroute' && mode !== 'station' && mode !== 'jr-enroute' && mode !== null) && <DefaultDisplay />}
         {/* Render DefaultDisplay if mode is null too? Original logic: (mode !== 'enroute' && mode !== 'station') includes null. */}
         {(mode === null) && <DefaultDisplay />}
         
