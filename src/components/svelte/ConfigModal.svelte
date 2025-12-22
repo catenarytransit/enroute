@@ -8,6 +8,7 @@
     let themePreference = "default";
     let use24HourTime = true;
     let fontPreference = "barlow";
+    let clickableTrips = false;
 
     onMount(() => {
         // Load initial state
@@ -17,9 +18,11 @@
 
         const urlTheme = getSetting("theme");
         const url24h = getSetting("24h") !== "false";
+        const urlClickable = getSetting("clickable_trips") === "true";
 
         if (urlTheme) themePreference = urlTheme;
         use24HourTime = url24h;
+        clickableTrips = urlClickable;
 
         const storedFont = localStorage.getItem("enroute_font");
         if (storedFont) fontPreference = storedFont;
@@ -30,6 +33,10 @@
         localStorage.setItem(`${prefix}theme`, themePreference);
         localStorage.setItem(`${prefix}24h`, use24HourTime.toString());
         localStorage.setItem(`${prefix}font`, fontPreference);
+        localStorage.setItem(
+            `${prefix}clickable_trips`,
+            clickableTrips.toString(),
+        );
 
         // Reload to apply
         window.location.reload();
@@ -107,7 +114,7 @@
             </div>
 
             <!-- Options -->
-            <div class="pt-2">
+            <div class="pt-2 space-y-2">
                 <label
                     class="flex items-center space-x-4 p-4 rounded-lg border border-slate-500 bg-slate-900/40 hover:bg-slate-700/40 cursor-pointer transition-colors"
                 >
@@ -121,6 +128,24 @@
                         >
                         <span class="block text-[10px] opacity-60"
                             >Display hours 00-23 without AM/PM</span
+                        >
+                    </div>
+                </label>
+
+                <label
+                    class="flex items-center space-x-4 p-4 rounded-lg border border-slate-500 bg-slate-900/40 hover:bg-slate-700/40 cursor-pointer transition-colors"
+                >
+                    <input
+                        type="checkbox"
+                        bind:checked={clickableTrips}
+                        class="form-checkbox h-6 w-6 text-red-500 rounded border-slate-500 bg-slate-900"
+                    />
+                    <div>
+                        <span class="block text-sm font-bold text-red-400"
+                            >Clickable Trips (Debug)</span
+                        >
+                        <span class="block text-[10px] opacity-60"
+                            >(For debugging only) Click to open Enroute view</span
                         >
                     </div>
                 </label>

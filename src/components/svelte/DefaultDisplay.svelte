@@ -35,6 +35,7 @@
         params.get(key) || localStorage.getItem(`enroute_${key}`);
     const use24h = getSetting("24h") !== "false";
     const theme = getSetting("theme") || "default";
+    const clickableTrips = getSetting("clickable_trips") === "true";
 
     // Clock
     let currentTime = new Date();
@@ -245,6 +246,7 @@
                     {theme}
                     {use24h}
                     {deviceLocation}
+                    {clickableTrips}
                     className={isEditing
                         ? "border-dashed border-2 border-yellow-500/50 bg-slate-800/80"
                         : ""}

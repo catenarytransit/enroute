@@ -12,8 +12,19 @@
     export let theme = "default";
     export let use24h = true;
     export let deviceLocation: { lat: number; lon: number } | null = null;
+    export let clickableTrips = false;
 
     const dispatch = createEventDispatcher();
+
+    function handleTripClick(item: DisplayItem) {
+        if (!clickableTrips) return;
+
+        // Construct the URL for the Enroute Display
+        // Assuming we need trip ID and chateau
+        if (item.tripId && item.chateau) {
+            window.location.href = `/?mode=enroute&trip=${item.tripId}&chateau=${item.chateau}&24h=${use24h}&theme=${theme}`;
+        }
+    }
 
     // Local Data State
     let nearbyData: NearbyDeparturesFromCoordsV2Response | null = null;
@@ -237,10 +248,14 @@
                                         <tr
                                             class="items-center {config.useRouteColor
                                                 ? 'text-white font-bold'
-                                                : 'border-b border-slate-700 last:border-0'}"
+                                                : 'border-b border-slate-700 last:border-0'} {clickableTrips
+                                                ? 'cursor-pointer hover:bg-white/10'
+                                                : ''}"
                                             style={config.useRouteColor
                                                 ? `background-color: ${item.color}; color: ${item.textColor}`
                                                 : ""}
+                                            on:click={() =>
+                                                handleTripClick(item)}
                                         >
                                             {#if config.showRouteShortName !== false}
                                                 <td class="px-2 py-1 font-bold">
@@ -333,11 +348,20 @@
                                                     class="flex items-center gap-2 shrink-0"
                                                 >
                                                     {#each direction.items as item}
+                                                        <!-- svelte-ignore a11y-click-events-have-key-events -->
                                                         <div
                                                             class={config.groupingTheme ===
                                                             "ratp"
                                                                 ? "bg-black/40 rounded px-1.5 py-0.5 min-w-[3rem] text-center"
                                                                 : ""}
+                                                            role="button"
+                                                            tabindex="0"
+                                                            on:click|stopPropagation={() =>
+                                                                handleTripClick(
+                                                                    item,
+                                                                )}
+                                                            class:cursor-pointer={clickableTrips}
+                                                            class:hover:opacity-80={clickableTrips}
                                                         >
                                                             <span
                                                                 class="font-bold text-lg leading-none"
@@ -364,13 +388,17 @@
                     {:else}
                         <!-- Simple (Default) Mode -->
                         {#each displayItems as item (item.key)}
+                            <!-- svelte-ignore a11y-click-events-have-key-events -->
                             <div
-                                class="rounded leading-none flex items-center justify-between cursor-pointer shadow hover:brightness-110 shrink-0"
+                                class="rounded leading-none flex items-center justify-between shadow hover:brightness-110 shrink-0 {clickableTrips
+                                    ? 'cursor-pointer'
+                                    : 'cursor-default'}"
                                 style={(config.useRouteColor
                                     ? `background-color: ${item.color}; color: ${item.textColor}; `
                                     : "") + paddingStyle}
                                 role="button"
                                 tabindex="0"
+                                on:click={() => handleTripClick(item)}
                             >
                                 <div class="flex-grow overflow-hidden mr-2">
                                     <div
