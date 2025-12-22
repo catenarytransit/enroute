@@ -93,3 +93,4 @@ export class EnrouteDisplayLogic {
         if (this.chunkInterval) clearInterval(this.chunkInterval);
     }
 }
+

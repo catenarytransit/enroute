@@ -1,8 +1,8 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import StationDisplay from "../components/svelte/StationDisplay.svelte";
+import { StationDisplay } from "../components/StationDisplay";
 ---
 
 <Layout>
-    <StationDisplay client:only="svelte" />
+    <StationDisplay client:only="react" />
 </Layout>

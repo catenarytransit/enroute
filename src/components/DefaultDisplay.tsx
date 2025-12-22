@@ -1,6 +1,8 @@
+
 import React, { useEffect, useState, useCallback } from "react";
 import { Pane } from "./Pane";
 import { PaneConfigModal } from "./PaneConfigModal";
+import { ConfigModal } from "./ConfigModal";
 import type { PaneConfig } from "./types/PaneConfig";
 
 interface DefaultDisplayProps {
@@ -25,6 +27,9 @@ export const DefaultDisplay: React.FC<DefaultDisplayProps> = () => {
     
     const [isEditing, setIsEditing] = useState(false);
     const [editingPaneId, setEditingPaneId] = useState<string | null>(null);
+    
+    // Global Config State
+    const [isGlobalConfigOpen, setIsGlobalConfigOpen] = useState(false);
 
     // Settings
     const getSetting = (key: string) => {
@@ -85,9 +90,14 @@ export const DefaultDisplay: React.FC<DefaultDisplayProps> = () => {
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
         }
+        
+        // Listen for openConfig event
+        const handleOpenConfig = () => setIsGlobalConfigOpen(true);
+        window.addEventListener("openConfig", handleOpenConfig);
 
         return () => {
             window.removeEventListener("resize", handleResize);
+            window.removeEventListener("openConfig", handleOpenConfig);
             clearInterval(timer);
         };
     }, []);
@@ -160,8 +170,6 @@ export const DefaultDisplay: React.FC<DefaultDisplayProps> = () => {
                         <div className="flex items-center gap-2 ml-4 px-2 py-0.5 rounded border border-slate-600 shadow-lg" style={{backgroundColor: 'rgba(30, 41, 59, 0.8)'}}>
                             <button
                                 onClick={() => {
-                                    // Dispatch openConfig event or handle globally
-                                    // For now, alerting or logging since we are not fully wired to a global modal yet
                                      const event = new CustomEvent("openConfig");
                                      window.dispatchEvent(event);
                                 }}
@@ -261,6 +269,11 @@ export const DefaultDisplay: React.FC<DefaultDisplayProps> = () => {
                     className="fixed top-0 left-0 w-screen h-screen bg-cover bg-center opacity-30 pointer-events-none -z-10"
                     style={{ backgroundImage: "url(/art/default.png)" }}
                 ></div>
+            )}
+            
+            {/* Global Config Modal */}
+            {isGlobalConfigOpen && (
+                <ConfigModal onClose={() => setIsGlobalConfigOpen(false)} />
             )}
 
             {/* Pane Config Modal */}

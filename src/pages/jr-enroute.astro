@@ -1,8 +1,8 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import JREnrouteDisplay from "../components/svelte/JREnrouteDisplay.svelte";
+import { JREnrouteDisplay } from "../components/JREnrouteDisplay";
 ---
 
 <Layout>
-    <JREnrouteDisplay client:only="svelte" />
+    <JREnrouteDisplay client:only="react" />
 </Layout>
