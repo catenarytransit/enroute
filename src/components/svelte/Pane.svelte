@@ -1,31 +1,85 @@
 <script lang="ts">
-    import { createEventDispatcher } from "svelte";
+    import { createEventDispatcher, onMount, onDestroy } from "svelte";
+    import { flattenDepartures, getActiveAlerts } from "../data/transitUtils";
     import type { NearbyDeparturesFromCoordsV2Response } from "../types/birchtypes";
-
     import type { DisplayItem } from "../types/DisplayItem";
+    import type { PaneConfig } from "../types/PaneConfig"; // Ensure this matches usage
 
-    export let config: {
-        id: string;
-        type: "departures" | "alerts";
-        name?: string;
-        allowedModes?: number[];
-        displayMode?: "simple" | "train_departure" | "grouped_by_route";
-        groupingTheme?: "default" | "ratp";
-        useRouteColor?: boolean;
-        showTripShortName?: boolean;
-        showRouteShortName?: boolean;
-        simplePaddingX?: string;
-        simplePaddingY?: string;
-        simpleListGap?: string;
-    };
-    export let allDepartures: DisplayItem[] = [];
-    export let activeAlerts: string[] = [];
+    export let config: PaneConfig;
+    // export let allDepartures: DisplayItem[] = []; // Removed
+    // export let activeAlerts: string[] = []; // Removed
     export let isEditing = false;
     export let style = "";
     export let className = "";
     export let theme = "default";
+    export let use24h = true;
+    export let deviceLocation: { lat: number; lon: number } | null = null;
 
     const dispatch = createEventDispatcher();
+
+    // Local Data State
+    let nearbyData: NearbyDeparturesFromCoordsV2Response | null = null;
+    let loading = true;
+    let error: string | null = null;
+    let minuteTick = 0;
+
+    // Derived State
+    $: effectiveLocation = config.location || deviceLocation;
+    $: radius = config.radius || 1500;
+
+    // Fetching Logic
+    let dataInterval: NodeJS.Timeout;
+
+    // Initial fetch and interval
+    $: {
+        if (effectiveLocation) {
+            fetchData();
+            if (dataInterval) clearInterval(dataInterval);
+            dataInterval = setInterval(fetchData, 30000);
+        } else {
+            loading = false;
+            error = "No location configured";
+        }
+    }
+
+    function fetchData() {
+        if (!effectiveLocation) return;
+        loading = true;
+
+        // Use effectiveLocation
+        const url = `https://birch.catenarymaps.org/nearbydeparturesfromcoordsv2?lat=${effectiveLocation.lat}&lon=${effectiveLocation.lon}&radius=${radius}`;
+
+        fetch(url)
+            .then((res) => {
+                if (!res.ok)
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                return res.json();
+            })
+            .then((data) => {
+                nearbyData = data;
+                loading = false;
+                error = null;
+            })
+            .catch((err: any) => {
+                console.error(err);
+                error = err.message; // localized error
+                loading = false;
+            });
+    }
+
+    // Minute tick for updating relative times
+    onMount(() => {
+        const tickTimer = setInterval(() => minuteTick++, 30000);
+        return () => clearInterval(tickTimer);
+    });
+
+    onDestroy(() => {
+        if (dataInterval) clearInterval(dataInterval);
+    });
+
+    // Compute display items
+    $: allDepartures = flattenDepartures(nearbyData, use24h, minuteTick);
+    $: activeAlerts = getActiveAlerts(nearbyData);
 
     function getDisplayItemsFiltered(items: DisplayItem[], config: any) {
         if (config.type !== "departures") return [];
@@ -139,7 +193,19 @@
 
     <!-- Content -->
     <div class="flex-grow overflow-auto p-2 scrollbar-hide">
-        {#if config.type === "departures"}
+        {#if loading && !nearbyData}
+            <div class="flex items-center justify-center h-full">
+                <span class="text-white/50 text-xs animate-pulse"
+                    >Loading data...</span
+                >
+            </div>
+        {:else if error}
+            <div
+                class="flex items-center justify-center h-full p-4 text-center"
+            >
+                <span class="text-red-400 text-xs">{error}</span>
+            </div>
+        {:else if config.type === "departures"}
             <div class="flex flex-col" style={gapStyle}>
                 {#if displayItems.length > 0}
                     {#if config.displayMode === "train_departure"}

@@ -11,4 +11,6 @@ export type PaneConfig = {
     simplePaddingX?: string;
     simplePaddingY?: string;
     simpleListGap?: string;
+    location?: { lat: number; lon: number };
+    radius?: number;
 }

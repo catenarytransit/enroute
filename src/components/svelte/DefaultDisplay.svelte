@@ -1,41 +1,19 @@
 <script lang="ts">
-    import { onMount, onDestroy, createEventDispatcher } from "svelte";
-    import { fade } from "svelte/transition";
-    import type { NearbyDeparturesFromCoordsV2Response } from "../types/birchtypes";
+    import { onMount, createEventDispatcher } from "svelte";
     import type { PaneConfig } from "../types/PaneConfig";
 
     import Pane from "./Pane.svelte";
     import PaneConfigModal from "./PaneConfigModal.svelte";
 
     const dispatch = createEventDispatcher();
-    import type { DisplayItem } from "../types/DisplayItem";
-    import {
-        fixHeadsignText,
-        fixRouteColor,
-        fixRouteName,
-        fixRouteTextColor,
-        fixStationName,
-    } from "../data/agencyspecific";
 
-    type PaneConfigType = {
-        id: string;
-        type: "departures" | "alerts";
-        name?: string;
-        allowedModes?: number[];
-        displayMode?: "simple" | "train_departure" | "grouped_by_route";
-        groupingTheme?: "default" | "ratp";
-        useRouteColor?: boolean;
-        showTripShortName?: boolean;
-        showRouteShortName?: boolean;
-        simplePaddingX?: string;
-        simplePaddingY?: string;
-        simpleListGap?: string;
-    };
+    // Re-declare for local use if needed, but imported PaneConfig handles it
+    // type PaneConfigType is in types/PaneConfig, imported above.
 
-    let nearbyData: NearbyDeparturesFromCoordsV2Response | null = null;
-    let location: { lat: number; lon: number } | null = null;
-    let error: string | null = null;
-    let loading = true;
+    // Global State
+    let deviceLocation: { lat: number; lon: number } | null = null;
+    let loadingLocation = true;
+    let locationError: string | null = null;
     let minuteTick = 0;
 
     let innerWidth = 0;
@@ -43,7 +21,8 @@
     $: isPortrait = innerHeight > innerWidth;
 
     // Layout State
-    let layout: { rows: number; cols: number; panes: PaneConfigType[] } = {
+    // Using PaneConfig type from import which now has location/radius
+    let layout: { rows: number; cols: number; panes: PaneConfig[] } = {
         rows: 1,
         cols: 1,
         panes: [{ id: "p1", type: "departures" }],
@@ -80,74 +59,45 @@
         // Minute tick
         const tickTimer = setInterval(() => minuteTick++, 30000);
 
-        // Location
+        // Geolocation for "Device Location" fallback
+        // We no longer read "lat" / "lon" from URL as a global setting for specific location overriding,
+        // but we might still want to optionally support it as "Device Location" override?
+        // The user said "Move global location information".
+        // If the URL has lat/lon, maybe we treat that as "Device Location".
         const urlLat = getSetting("lat");
         const urlLon = getSetting("lon");
 
         if (urlLat && urlLon) {
-            location = { lat: parseFloat(urlLat), lon: parseFloat(urlLon) };
-            loading = false;
+            deviceLocation = {
+                lat: parseFloat(urlLat),
+                lon: parseFloat(urlLon),
+            };
+            loadingLocation = false;
         } else if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    location = {
+                    deviceLocation = {
                         lat: position.coords.latitude,
                         lon: position.coords.longitude,
                     };
+                    loadingLocation = false;
                 },
                 (err) => {
-                    error = "Unable to retrieve location";
-                    loading = false;
+                    console.error("Geolocation error", err);
+                    locationError = "Unable to retrieve device location";
+                    loadingLocation = false;
                 },
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
             );
         } else {
-            error = "Geolocation is not supported";
-            loading = false;
+            locationError = "Geolocation is not supported";
+            loadingLocation = false;
         }
 
         return () => {
             clearInterval(timer);
             clearInterval(tickTimer);
         };
-    });
-
-    // Data Fetching
-    let dataInterval: NodeJS.Timeout;
-
-    $: {
-        if (location) {
-            fetchData();
-            if (dataInterval) clearInterval(dataInterval);
-            dataInterval = setInterval(fetchData, 30000);
-        }
-    }
-
-    function fetchData() {
-        if (!location) return;
-        loading = true;
-        const url = `https://birch.catenarymaps.org/nearbydeparturesfromcoordsv2?lat=${location.lat}&lon=${location.lon}&radius=1500`;
-
-        fetch(url)
-            .then((res) => {
-                if (!res.ok)
-                    throw new Error(`HTTP error! status: ${res.status}`);
-                return res.json();
-            })
-            .then((data) => {
-                nearbyData = data;
-                loading = false;
-                error = null;
-            })
-            .catch((err: any) => {
-                console.error(err);
-                error = `Failed to fetch nearby transit data: ${err.message}`;
-                loading = false;
-            });
-    }
-
-    onDestroy(() => {
-        if (dataInterval) clearInterval(dataInterval);
     });
 
     function saveLayout(newLayout: typeof layout) {
@@ -173,130 +123,12 @@
         saveLayout({ rows, cols, panes: newPanes });
     }
 
-    function updatePaneConfig(id: string, updates: Partial<PaneConfigType>) {
+    function updatePaneConfig(id: string, updates: Partial<PaneConfig>) {
         const newPanes = layout.panes.map((p) =>
             p.id === id ? { ...p, ...updates } : p,
         );
         saveLayout({ ...layout, panes: newPanes });
     }
-
-    function flattenDepartures(
-        data: NearbyDeparturesFromCoordsV2Response | null,
-        use24h: boolean,
-        tick: number,
-    ): DisplayItem[] {
-        if (!data) return [];
-
-        const items: DisplayItem[] = [];
-
-        data.departures.forEach((dep) => {
-            const routeName = fixRouteName(
-                dep.chateau_id,
-                dep.short_name || dep.long_name || dep.route_id,
-                dep.route_id,
-            );
-
-            Object.keys(dep.directions)
-                .map((key) => dep.directions[key])
-                .forEach((directionGroup) => {
-                    Object.keys(directionGroup)
-                        .map((key) => directionGroup[key])
-                        .forEach((dir) => {
-                            dir.trips.forEach((trip) => {
-                                const stopInfo =
-                                    data.stop[dep.chateau_id]?.[trip.stop_id];
-                                const stopName = stopInfo
-                                    ? fixStationName(stopInfo.name)
-                                    : "Unknown Stop";
-
-                                const arrivalTime =
-                                    trip.departure_realtime ||
-                                    trip.departure_schedule;
-                                if (!arrivalTime) return;
-
-                                const now = Date.now() / 1000;
-                                const min = Math.floor(
-                                    (arrivalTime - now) / 60,
-                                );
-                                if (min < -2) return;
-
-                                items.push({
-                                    key: `${dep.chateau_id}-${trip.trip_id}-${trip.stop_id}`,
-                                    routeShortName: routeName,
-                                    headsign: fixHeadsignText(dir.headsign),
-                                    formattedTime: new Date(
-                                        arrivalTime * 1000,
-                                    ).toLocaleTimeString([], {
-                                        hour: "numeric",
-                                        minute: "2-digit",
-                                        hour12: !use24h,
-                                    }),
-                                    min: min,
-                                    color: fixRouteColor(
-                                        dep.chateau_id,
-                                        dep.route_id,
-                                        dep.color,
-                                    ),
-                                    textColor: fixRouteTextColor(
-                                        dep.chateau_id,
-                                        dep.route_id,
-                                        dep.text_color,
-                                    ),
-                                    stopName: stopName,
-                                    chateau: dep.chateau_id,
-                                    tripId: trip.trip_id,
-                                    stopId: trip.stop_id,
-                                    routeType: dep.route_type,
-                                    tripShortName: trip.trip_short_name,
-                                    platform:
-                                        (trip.platform ??
-                                            stopInfo?.platform_code) ||
-                                        undefined,
-                                    directionId: dir.direction_id,
-                                });
-                            });
-                        });
-                });
-        });
-
-        // Deduplicate
-        const uniqueItems = new Map();
-        items.forEach((item) => {
-            if (uniqueItems.has(item.key)) {
-                const existing = uniqueItems.get(item.key);
-                if (item.min < existing.min) {
-                    uniqueItems.set(item.key, item);
-                }
-            } else {
-                uniqueItems.set(item.key, item);
-            }
-        });
-
-        const sortedItems = Array.from(uniqueItems.values());
-        sortedItems.sort((a, b) => a.min - b.min);
-        return sortedItems;
-    }
-
-    $: allDepartures = flattenDepartures(nearbyData, use24h, minuteTick);
-
-    // Active alerts
-    $: activeAlerts = (() => {
-        const alerts: string[] = [];
-        if (nearbyData?.alerts) {
-            Object.values(nearbyData.alerts).forEach((agencyAlerts) => {
-                Object.values(agencyAlerts).forEach((alert) => {
-                    const text =
-                        alert.header_text?.translation?.[0]?.text ||
-                        alert.description_text?.translation?.[0]?.text;
-                    if (text) alerts.push(text);
-                });
-            });
-        }
-        return alerts;
-    })();
-
-    $: vUnit = isPortrait ? "vw" : "vh";
-    $: hUnit = isPortrait ? "vh" : "vw";
 </script>
 
 <svelte:window bind:innerWidth bind:innerHeight />
@@ -318,7 +150,7 @@
             <span
                 class="font-bold truncate"
                 style="font-size: {isPortrait ? '2.5vh' : '3vh'}"
-                >Nearby Departures</span
+                >Enroute Screen</span
             >
             <button
                 on:click={() => (isEditing = !isEditing)}
@@ -401,53 +233,25 @@
         class="absolute left-0 right-0 bottom-0 overflow-hidden"
         style="top: 6vh; padding: {isEditing ? '20px' : '0'}"
     >
-        {#if error}
-            <div
-                class="flex flex-col items-center justify-center h-full p-10 text-center text-white"
-            >
-                <p class="font-semibold text-red-400 text-[3vw] mb-4">
-                    Error: {error}
-                </p>
-                <button
-                    on:click={() => window.location.reload()}
-                    class="bg-slate-700 text-white px-6 py-2 rounded-lg hover:bg-slate-600 transition-colors"
-                    >Retry</button
-                >
-            </div>
-        {:else if !nearbyData && loading}
-            <div
-                class="flex flex-col items-center justify-center h-full text-white"
-            >
-                <p class="font-semibold text-seashore text-[2vw] animate-pulse">
-                    Finding nearby stops...
-                </p>
-                <p class="opacity-30 mt-4 text-sm italic">
-                    Searching based on {getSetting("lat")
-                        ? "Manual Override"
-                        : "Current Location"}
-                </p>
-            </div>
-        {:else}
-            <div
-                class={`w-full h-full grid gap-2 p-2 transition-all duration-300`}
-                style="grid-template-rows: repeat({layout.rows}, minmax(0, 1fr));
-                        grid-template-columns: repeat({layout.cols}, minmax(0, 1fr));"
-            >
-                {#each layout.panes as pane (pane.id)}
-                    <Pane
-                        config={pane}
-                        {allDepartures}
-                        {activeAlerts}
-                        {isEditing}
-                        {theme}
-                        className={isEditing
-                            ? "border-dashed border-2 border-yellow-500/50 bg-slate-800/80"
-                            : ""}
-                        on:edit={() => (editingPaneId = pane.id)}
-                    />
-                {/each}
-            </div>
-        {/if}
+        <div
+            class={`w-full h-full grid gap-2 p-2 transition-all duration-300`}
+            style="grid-template-rows: repeat({layout.rows}, minmax(0, 1fr));
+                    grid-template-columns: repeat({layout.cols}, minmax(0, 1fr));"
+        >
+            {#each layout.panes as pane (pane.id)}
+                <Pane
+                    config={pane}
+                    {isEditing}
+                    {theme}
+                    {use24h}
+                    {deviceLocation}
+                    className={isEditing
+                        ? "border-dashed border-2 border-yellow-500/50 bg-slate-800/80"
+                        : ""}
+                    on:edit={() => (editingPaneId = pane.id)}
+                />
+            {/each}
+        </div>
     </div>
 
     <!-- Background Art -->
