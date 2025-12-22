@@ -5,6 +5,9 @@ export type TripInformation = {
         minutes: string;
         arrivalTime: string;
         isSpacer?: boolean;
+        count?: number;
+        stopId?: string;
+        key: string;
     }[];
     nextStop: string;
     nextStopID: string;

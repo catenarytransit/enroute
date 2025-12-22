@@ -1,8 +1,8 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import DisplayHandler from "../components/DisplayHandler";
+import DisplayHandler from "../components/svelte/DisplayHandler.svelte";
 ---
 
 <Layout>
-	<DisplayHandler client:only="react" />
+	<DisplayHandler client:only="svelte" />
 </Layout>
