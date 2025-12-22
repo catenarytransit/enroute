@@ -10,9 +10,13 @@
         name?: string;
         allowedModes?: number[];
         displayMode?: "simple" | "train_departure" | "grouped_by_route";
+        groupingTheme?: "default" | "ratp";
         useRouteColor?: boolean;
         showTripShortName?: boolean;
         showRouteShortName?: boolean;
+        simplePaddingX?: string;
+        simplePaddingY?: string;
+        simpleListGap?: string;
     };
     export let allDepartures: DisplayItem[] = [];
     export let activeAlerts: string[] = [];
@@ -47,27 +51,67 @@
         dispatch("edit");
     }
 
+    interface DirectionGroup {
+        headsign: string;
+        items: DisplayItem[];
+    }
+
+    interface RouteGroup {
+        routeShortName: string;
+        routeColor: string;
+        routeTextColor: string;
+        directions: DirectionGroup[];
+    }
+
     function groupDepartures(items: DisplayItem[]) {
-        const groups: Record<
-            string,
-            { route: DisplayItem; next: DisplayItem[] }
-        > = {};
+        const routes: Record<string, RouteGroup> = {};
+
         items.forEach((item) => {
-            const key = `${item.routeShortName}-${item.headsign}`;
-            if (!groups[key]) {
-                groups[key] = { route: item, next: [] };
+            const routeKey = item.routeShortName;
+
+            if (!routes[routeKey]) {
+                routes[routeKey] = {
+                    routeShortName: item.routeShortName,
+                    routeColor: item.color,
+                    routeTextColor: item.textColor,
+                    directions: [],
+                };
             }
-            if (groups[key].next.length < 3) {
-                groups[key].next.push(item);
+
+            let dirGroup = routes[routeKey].directions.find(
+                (d) => d.headsign === item.headsign,
+            );
+            if (!dirGroup) {
+                dirGroup = { headsign: item.headsign, items: [] };
+                routes[routeKey].directions.push(dirGroup);
+            }
+
+            if (dirGroup.items.length < 3) {
+                dirGroup.items.push(item);
             }
         });
-        return Object.values(groups);
+
+        // Optional: Sort routes if needed, or rely on input order
+        return Object.values(routes);
     }
 
     $: groupedItems =
         config.displayMode === "grouped_by_route"
             ? groupDepartures(displayItems)
             : [];
+
+    $: gapStyle =
+        config.simpleListGap !== undefined
+            ? `gap: ${parseFloat(config.simpleListGap) * 0.25}rem`
+            : "gap: 0.5rem";
+
+    $: paddingStyle =
+        config.simplePaddingX !== undefined &&
+        config.simplePaddingY !== undefined
+            ? `padding: ${parseFloat(config.simplePaddingY) * 0.25}rem ${parseFloat(config.simplePaddingX) * 0.25}rem`
+            : config.useRouteColor
+              ? "padding: 0.25rem 0.5rem"
+              : "padding: 0";
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -96,115 +140,152 @@
     <!-- Content -->
     <div class="flex-grow overflow-auto p-2 scrollbar-hide">
         {#if config.type === "departures"}
-            <div class="flex flex-col gap-2">
+            <div class="flex flex-col" style={gapStyle}>
                 {#if displayItems.length > 0}
                     {#if config.displayMode === "train_departure"}
                         <!-- Train Departure Mode -->
-                        <div class="grid font-mono text-sm">
-                            <div
-                                class="grid gap-x-4 px-2 py-1 text-xs font-bold text-slate-400 border-b border-slate-700"
-                                style="grid-template-columns: {config.showRouteShortName !==
-                                false
-                                    ? 'auto'
-                                    : ''} auto {config.showTripShortName !==
-                                false
-                                    ? 'auto'
-                                    : ''} 1fr auto"
+                        <!-- Train Departure Mode -->
+                        <div class="overflow-x-auto">
+                            <table
+                                class="w-full text-left font-mono text-sm border-spacing-0"
                             >
-                                {#if config.showRouteShortName !== false}
-                                    <span>Rte</span>
-                                {/if}
-                                <span>Time</span>
-                                {#if config.showTripShortName !== false}
-                                    <span>Trip</span>
-                                {/if}
-                                <span>Direction</span>
-                                <span>Plat</span>
-                            </div>
-                            {#each displayItems as item (item.key)}
-                                <div
-                                    class="grid gap-x-4 px-2 py-1 items-center {config.useRouteColor
-                                        ? 'text-white font-bold'
-                                        : 'border-b border-slate-700 last:border-0'}"
-                                    style="{config.useRouteColor
-                                        ? `background-color: ${item.color}; color: ${item.textColor};`
-                                        : ''} grid-template-columns: {config.showRouteShortName !==
-                                    false
-                                        ? 'auto'
-                                        : ''} auto {config.showTripShortName !==
-                                    false
-                                        ? 'auto'
-                                        : ''} 1fr auto"
-                                >
-                                    {#if config.showRouteShortName !== false}
-                                        <div class="font-bold">
-                                            {item.routeShortName}
-                                        </div>
-                                    {/if}
-                                    <div class="whitespace-nowrap">
-                                        {item.formattedTime}
-                                    </div>
-                                    {#if config.showTripShortName !== false}
-                                        <div class="font-bold">
-                                            {item.tripShortName}
-                                        </div>
-                                    {/if}
-                                    <div class="truncate">
-                                        {item.headsign}
-                                    </div>
-                                    <div class="text-right">
-                                        {item.platform || "-"}
-                                    </div>
-                                </div>
-                            {/each}
+                                <thead>
+                                    <tr
+                                        class="text-xs font-bold text-slate-400 border-b border-slate-700"
+                                    >
+                                        {#if config.showRouteShortName !== false}
+                                            <th class="px-2 py-1">Rte</th>
+                                        {/if}
+                                        <th class="px-2 py-1">Time</th>
+                                        {#if config.showTripShortName !== false}
+                                            <th class="px-2 py-1">Trip</th>
+                                        {/if}
+                                        <th class="px-2 py-1 w-full"
+                                            >Direction</th
+                                        >
+                                        <th class="px-2 py-1 text-right"
+                                            >Plat</th
+                                        >
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {#each displayItems as item (item.key)}
+                                        <tr
+                                            class="items-center {config.useRouteColor
+                                                ? 'text-white font-bold'
+                                                : 'border-b border-slate-700 last:border-0'}"
+                                            style={config.useRouteColor
+                                                ? `background-color: ${item.color}; color: ${item.textColor}`
+                                                : ""}
+                                        >
+                                            {#if config.showRouteShortName !== false}
+                                                <td class="px-2 py-1 font-bold">
+                                                    {item.routeShortName}
+                                                </td>
+                                            {/if}
+                                            <td
+                                                class="px-2 py-1 whitespace-nowrap"
+                                            >
+                                                {item.formattedTime}
+                                            </td>
+                                            {#if config.showTripShortName !== false}
+                                                <td class="px-2 py-1 font-bold">
+                                                    {item.tripShortName}
+                                                </td>
+                                            {/if}
+                                            <td
+                                                class="px-2 py-1 truncate max-w-[100px]"
+                                            >
+                                                {item.headsign}
+                                            </td>
+                                            <td class="px-2 py-1 text-right">
+                                                {item.platform || "-"}
+                                            </td>
+                                        </tr>
+                                    {/each}
+                                </tbody>
+                            </table>
                         </div>
                     {:else if config.displayMode === "grouped_by_route"}
-                        <!-- Grouped by Route Mode -->
+                        <!-- Grouped by Route Mode (Unified Layout) -->
                         <div class="flex flex-col gap-2">
                             {#each groupedItems as group}
+                                <!-- svelte-ignore a11y-click-events-have-key-events -->
                                 <div
-                                    class="flex flex-col rounded overflow-hidden border border-slate-600 bg-slate-800/50"
+                                    class="flex rounded overflow-hidden border border-slate-600 bg-slate-800/50"
                                 >
+                                    <!-- Route Badge (Left Sidebar) -->
                                     <div
-                                        class="px-2 py-1 font-bold flex justify-between items-center"
-                                        style="background-color: {group.route
-                                            .color}; color: {group.route
-                                            .textColor}"
+                                        class="w-12 flex items-center justify-center font-bold text-2xl shrink-0 p-2 border-r border-slate-700"
+                                        style={config.groupingTheme === "ratp"
+                                            ? `background-color: ${group.routeColor}; color: ${group.routeTextColor}`
+                                            : "background-color: rgba(30, 41, 59, 0.5);"}
                                     >
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-lg"
-                                                >{group.route
-                                                    .routeShortName}</span
+                                        {#if config.groupingTheme === "ratp"}
+                                            <!-- RATP Style: Circular Badge -->
+                                            <div
+                                                class="w-8 h-8 rounded-full border-2 border-current flex items-center justify-center"
                                             >
-                                            <span class="text-sm opacity-90"
-                                                >to {group.route.headsign}</span
-                                            >
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="flex items-center p-2 gap-4 text-sm"
-                                    >
-                                        {#each group.next as item, i}
-                                            <div class="flex flex-col">
-                                                <span
-                                                    class="font-bold whitespace-nowrap"
-                                                >
-                                                    {item.min}<span
-                                                        class="text-[10px] font-normal"
-                                                        >min</span
-                                                    >
-                                                </span>
-                                                <span
-                                                    class="text-[10px] opacity-50"
-                                                >
-                                                    {item.formattedTime}
-                                                </span>
+                                                {group.routeShortName}
                                             </div>
-                                            {#if i < group.next.length - 1}
+                                        {:else}
+                                            <!-- Standard Style: Simple Text -->
+                                            <span
+                                                class="text-white"
+                                                style="color: {group.routeColor}"
+                                                >{group.routeShortName}</span
+                                            >
+                                        {/if}
+                                    </div>
+
+                                    <!-- Directions (Right Content) -->
+                                    <div
+                                        class="flex flex-col flex-grow text-xs"
+                                    >
+                                        {#each group.directions as direction, idx}
+                                            <div
+                                                class="flex items-center justify-between p-2 gap-2 {idx <
+                                                group.directions.length - 1
+                                                    ? 'border-b border-slate-700'
+                                                    : ''} {idx % 2 === 0
+                                                    ? 'bg-white/5'
+                                                    : ''}"
+                                            >
+                                                <!-- Direction Name -->
                                                 <div
-                                                    class="w-px h-6 bg-slate-600"
-                                                ></div>
-                                            {/if}
+                                                    class="font-bold truncate text-sm flex-grow"
+                                                >
+                                                    {direction.headsign}
+                                                </div>
+
+                                                <!-- Times -->
+                                                <div
+                                                    class="flex items-center gap-2 shrink-0"
+                                                >
+                                                    {#each direction.items as item}
+                                                        <div
+                                                            class={config.groupingTheme ===
+                                                            "ratp"
+                                                                ? "bg-black/40 rounded px-1.5 py-0.5 min-w-[3rem] text-center"
+                                                                : ""}
+                                                        >
+                                                            <span
+                                                                class="font-bold text-lg leading-none"
+                                                                class:text-yellow-500={config.groupingTheme ===
+                                                                    "ratp"}
+                                                                class:text-white={config.groupingTheme !==
+                                                                    "ratp"}
+                                                            >
+                                                                {item.min}
+                                                            </span>
+                                                            <span
+                                                                class="text-[9px] opacity-70 ml-0.2 leading-none"
+                                                                >min</span
+                                                            >
+                                                        </div>
+                                                    {/each}
+                                                </div>
+                                            </div>
                                         {/each}
                                     </div>
                                 </div>
@@ -214,24 +295,22 @@
                         <!-- Simple (Default) Mode -->
                         {#each displayItems as item (item.key)}
                             <div
-                                class="rounded leading-none flex items-center justify-between cursor-pointer shadow hover:brightness-110 shrink-0 {config.useRouteColor
-                                    ? 'px-2 py-1'
-                                    : ''}"
-                                style={config.useRouteColor
-                                    ? `background-color: ${item.color}; color: ${item.textColor}`
-                                    : ""}
+                                class="rounded leading-none flex items-center justify-between cursor-pointer shadow hover:brightness-110 shrink-0"
+                                style={(config.useRouteColor
+                                    ? `background-color: ${item.color}; color: ${item.textColor}; `
+                                    : "") + paddingStyle}
                                 role="button"
                                 tabindex="0"
                             >
                                 <div class="flex-grow overflow-hidden mr-2">
                                     <div
-                                        class="flex items-baseline gap-1 overflow-hidden opacity-90 text-[10px]"
+                                        class="flex items-baseline gap-1 overflow-hidden"
                                     >
                                         <span
                                             class="font-bold whitespace-nowrap"
                                             >{item.routeShortName}</span
                                         >
-                                        <span class="opacity-70 truncate"
+                                        <span class="font-medium truncate"
                                             >to {item.headsign}</span
                                         >
                                     </div>

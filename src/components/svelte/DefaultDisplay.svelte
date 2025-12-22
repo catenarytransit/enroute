@@ -23,9 +23,13 @@
         name?: string;
         allowedModes?: number[];
         displayMode?: "simple" | "train_departure" | "grouped_by_route";
+        groupingTheme?: "default" | "ratp";
         useRouteColor?: boolean;
         showTripShortName?: boolean;
         showRouteShortName?: boolean;
+        simplePaddingX?: string;
+        simplePaddingY?: string;
+        simpleListGap?: string;
     };
 
     let nearbyData: NearbyDeparturesFromCoordsV2Response | null = null;
@@ -447,10 +451,12 @@
     </div>
 
     <!-- Background Art -->
-    <div
-        class="fixed top-0 left-0 w-screen h-screen bg-cover bg-center opacity-30 pointer-events-none -z-10"
-        style="background-image: url(/art/default.png)"
-    ></div>
+    {#if theme === "default"}
+        <div
+            class="fixed top-0 left-0 w-screen h-screen bg-cover bg-center opacity-30 pointer-events-none -z-10"
+            style="background-image: url(/art/default.png)"
+        ></div>
+    {/if}
 
     <!-- Pane Config Modal -->
     {#if isEditing && editingPaneId}

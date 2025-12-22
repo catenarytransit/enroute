@@ -7,9 +7,13 @@
         name?: string;
         allowedModes?: number[];
         displayMode?: "simple" | "train_departure" | "grouped_by_route";
+        groupingTheme?: "default" | "ratp";
         useRouteColor?: boolean;
         showTripShortName?: boolean;
         showRouteShortName?: boolean;
+        simplePaddingX?: string;
+        simplePaddingY?: string;
+        simpleListGap?: string;
     };
 
     const dispatch = createEventDispatcher();
@@ -19,9 +23,13 @@
     let allowedModes: number[] = pane.allowedModes || [];
     let displayMode: "simple" | "train_departure" | "grouped_by_route" =
         pane.displayMode || "simple";
+    let groupingTheme: "default" | "ratp" = pane.groupingTheme || "default";
     let useRouteColor = pane.useRouteColor || false;
     let showTripShortName = pane.showTripShortName ?? true;
     let showRouteShortName = pane.showRouteShortName ?? true;
+    let simplePaddingX = pane.simplePaddingX || "2";
+    let simplePaddingY = pane.simplePaddingY || "1";
+    let simpleListGap = pane.simpleListGap || "2";
 
     function toggleMode(id: number) {
         if (allowedModes.includes(id)) {
@@ -37,9 +45,13 @@
             type,
             allowedModes,
             displayMode,
+            groupingTheme,
             useRouteColor,
             showTripShortName,
             showRouteShortName,
+            simplePaddingX,
+            simplePaddingY,
+            simpleListGap,
         });
     }
 
@@ -166,6 +178,77 @@
                     <option value="train_departure">Train Departure</option>
                     <option value="grouped_by_route">Grouped by Route</option>
                 </select>
+
+                {#if displayMode === "grouped_by_route"}
+                    <label
+                        class="block text-xs font-bold text-slate-400 mb-2 mt-2"
+                        for="groupingTheme">Grouping Theme</label
+                    >
+                    <select
+                        id="groupingTheme"
+                        bind:value={groupingTheme}
+                        class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white outline-none focus:border-blue-500 mb-2"
+                    >
+                        <option value="default">Standard</option>
+                        <option value="ratp">RATP Style</option>
+                    </select>
+                {/if}
+
+                {#if displayMode === "simple"}
+                    <div class="border-t border-slate-700 pt-3 mt-3">
+                        <label
+                            class="block text-xs font-bold text-slate-400 mb-2"
+                            >Spacing Configuration</label
+                        >
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label
+                                    class="block text-[10px] text-slate-500 mb-1"
+                                    for="simplePaddingX">H. Padding</label
+                                >
+                                <select
+                                    id="simplePaddingX"
+                                    bind:value={simplePaddingX}
+                                    class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-xs outline-none focus:border-blue-500"
+                                >
+                                    {#each ["0", "0.5", "1", "1.5", "2", "3", "4", "5", "6"] as val}
+                                        <option value={val}>{val}</option>
+                                    {/each}
+                                </select>
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-[10px] text-slate-500 mb-1"
+                                    for="simplePaddingY">V. Padding</label
+                                >
+                                <select
+                                    id="simplePaddingY"
+                                    bind:value={simplePaddingY}
+                                    class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-xs outline-none focus:border-blue-500"
+                                >
+                                    {#each ["0", "0.5", "1", "1.5", "2", "3", "4", "5", "6"] as val}
+                                        <option value={val}>{val}</option>
+                                    {/each}
+                                </select>
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-[10px] text-slate-500 mb-1"
+                                    for="simpleListGap">Item Gap</label
+                                >
+                                <select
+                                    id="simpleListGap"
+                                    bind:value={simpleListGap}
+                                    class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-xs outline-none focus:border-blue-500"
+                                >
+                                    {#each ["0", "0.5", "1", "1.5", "2", "3", "4"] as val}
+                                        <option value={val}>{val}</option>
+                                    {/each}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                {/if}
 
                 <label class="flex items-center space-x-2 cursor-pointer">
                     <input

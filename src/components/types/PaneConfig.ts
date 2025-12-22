@@ -3,4 +3,12 @@ export type PaneConfig = {
     type: 'departures' | 'alerts';
     name?: string;
     allowedModes?: number[];
+    displayMode?: 'simple' | 'train_departure' | 'grouped_by_route';
+    groupingTheme?: 'default' | 'ratp';
+    useRouteColor?: boolean;
+    showTripShortName?: boolean;
+    showRouteShortName?: boolean;
+    simplePaddingX?: string;
+    simplePaddingY?: string;
+    simpleListGap?: string;
 }
