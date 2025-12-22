@@ -1,11 +1,21 @@
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { onMount, onDestroy, createEventDispatcher } from "svelte";
     import { fade } from "svelte/transition";
     import type { NearbyDeparturesFromCoordsV2Response } from "../types/birchtypes";
     import type { PaneConfig } from "../types/PaneConfig";
 
     import Pane from "./Pane.svelte";
     import PaneConfigModal from "./PaneConfigModal.svelte";
+
+    const dispatch = createEventDispatcher();
+    import type { DisplayItem } from "../types/DisplayItem";
+    import {
+        fixHeadsignText,
+        fixRouteColor,
+        fixRouteName,
+        fixRouteTextColor,
+        fixStationName,
+    } from "../data/agencyspecific";
 
     type PaneConfigType = {
         id: string;
@@ -161,6 +171,99 @@
         saveLayout({ ...layout, panes: newPanes });
     }
 
+    function flattenDepartures(
+        data: NearbyDeparturesFromCoordsV2Response | null,
+        use24h: boolean,
+        tick: number,
+    ): DisplayItem[] {
+        if (!data) return [];
+
+        const items: DisplayItem[] = [];
+
+        data.departures.forEach((dep) => {
+            const routeName = fixRouteName(
+                dep.chateau_id,
+                dep.short_name || dep.long_name || dep.route_id,
+                dep.route_id,
+            );
+
+            Object.keys(dep.directions)
+                .map((key) => dep.directions[key])
+                .forEach((directionGroup) => {
+                    Object.keys(directionGroup)
+                        .map((key) => directionGroup[key])
+                        .forEach((dir) => {
+                            dir.trips.forEach((trip) => {
+                                const stopInfo =
+                                    data.stop[dep.chateau_id]?.[trip.stop_id];
+                                const stopName = stopInfo
+                                    ? fixStationName(stopInfo.name)
+                                    : "Unknown Stop";
+
+                                const arrivalTime =
+                                    trip.departure_realtime ||
+                                    trip.departure_schedule;
+                                if (!arrivalTime) return;
+
+                                const now = Date.now() / 1000;
+                                const min = Math.floor(
+                                    (arrivalTime - now) / 60,
+                                );
+                                if (min < -2) return;
+
+                                items.push({
+                                    key: `${dep.chateau_id}-${trip.trip_id}-${trip.stop_id}`,
+                                    routeShortName: routeName,
+                                    headsign: fixHeadsignText(dir.headsign),
+                                    formattedTime: new Date(
+                                        arrivalTime * 1000,
+                                    ).toLocaleTimeString([], {
+                                        hour: "numeric",
+                                        minute: "2-digit",
+                                        hour12: !use24h,
+                                    }),
+                                    min: min,
+                                    color: fixRouteColor(
+                                        dep.chateau_id,
+                                        dep.route_id,
+                                        dep.color,
+                                    ),
+                                    textColor: fixRouteTextColor(
+                                        dep.chateau_id,
+                                        dep.route_id,
+                                        dep.text_color,
+                                    ),
+                                    stopName: stopName,
+                                    chateau: dep.chateau_id,
+                                    tripId: trip.trip_id,
+                                    stopId: trip.stop_id,
+                                    routeType: dep.route_type,
+                                });
+                            });
+                        });
+                });
+        });
+
+        // Deduplicate
+        const uniqueItems = new Map();
+        items.forEach((item) => {
+            if (uniqueItems.has(item.key)) {
+                const existing = uniqueItems.get(item.key);
+                if (item.min < existing.min) {
+                    uniqueItems.set(item.key, item);
+                }
+            } else {
+                uniqueItems.set(item.key, item);
+            }
+        });
+
+        const sortedItems = Array.from(uniqueItems.values());
+        sortedItems.sort((a, b) => a.min - b.min);
+        return sortedItems;
+    }
+
+    $: allDepartures = flattenDepartures(nearbyData, use24h, minuteTick);
+
     // Active alerts
     $: activeAlerts = (() => {
         const alerts: string[] = [];
@@ -212,6 +315,13 @@
                 <div
                     class="flex items-center gap-2 ml-4 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-600 shadow-lg"
                 >
+                    <button
+                        on:click={() => dispatch("openConfig")}
+                        class="text-[10px] font-bold text-white bg-slate-600 hover:bg-slate-500 px-2 py-0.5 rounded transition-colors border border-slate-500"
+                    >
+                        Overall settings
+                    </button>
+                    <div class="w-px h-4 bg-slate-600 mx-1"></div>
                     <span class="text-[10px] font-bold text-slate-400"
                         >GRID</span
                     >
@@ -308,14 +418,13 @@
                 {#each layout.panes as pane (pane.id)}
                     <Pane
                         config={pane}
-                        data={nearbyData}
+                        {allDepartures}
+                        {activeAlerts}
                         {isEditing}
                         className={isEditing
                             ? "border-dashed border-2 border-yellow-500/50 bg-slate-800/80"
                             : ""}
-                        {use24h}
                         on:edit={() => (editingPaneId = pane.id)}
-                        {minuteTick}
                     />
                 {/each}
             </div>
@@ -327,18 +436,6 @@
         class="fixed top-0 left-0 w-screen h-screen bg-cover bg-center opacity-30 pointer-events-none -z-10"
         style="background-image: url(/art/default.png)"
     ></div>
-
-    <!-- Global Alerts Ticker -->
-    {#if activeAlerts.length > 0 && !layout.panes.some((p) => p.type === "alerts")}
-        <div
-            class="absolute bottom-0 left-0 w-full bg-yellow-600 text-black font-bold whitespace-nowrap overflow-hidden z-20 border-t-4 border-yellow-800"
-            style="padding: 0.5{vUnit}; font-size: 1.8{vUnit}"
-        >
-            <div class="animate-marquee inline-block px-[100{hUnit}]">
-                {activeAlerts.join(" • ")}
-            </div>
-        </div>
-    {/if}
 
     <!-- Pane Config Modal -->
     {#if isEditing && editingPaneId}

@@ -1,13 +1,8 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte";
     import type { NearbyDeparturesFromCoordsV2Response } from "../types/birchtypes";
-    import {
-        fixHeadsignText,
-        fixRouteColor,
-        fixRouteName,
-        fixRouteTextColor,
-        fixStationName,
-    } from "../data/agencyspecific";
+
+    import type { DisplayItem } from "../types/DisplayItem";
 
     export let config: {
         id: string;
@@ -15,135 +10,32 @@
         name?: string;
         allowedModes?: number[];
     };
-    export let data: NearbyDeparturesFromCoordsV2Response | null;
+    export let allDepartures: DisplayItem[] = [];
+    export let activeAlerts: string[] = [];
     export let isEditing = false;
-    export let use24h = true;
     export let style = "";
     export let className = "";
-    export let minuteTick = 0; // Trigger reactivity
 
     const dispatch = createEventDispatcher();
 
-    function getDisplayItems(
-        data: NearbyDeparturesFromCoordsV2Response | null,
-        config: any,
-        use24h: boolean,
-        tick: number,
-    ) {
-        if (!data || config.type !== "departures") return [];
+    function getDisplayItemsFiltered(items: DisplayItem[], config: any) {
+        if (config.type !== "departures") return [];
 
-        const items: any[] = [];
         const allowedModes = config.allowedModes || [];
 
-        data.departures.forEach((dep) => {
-            if (
-                dep.route_type !== undefined &&
-                allowedModes.length > 0 &&
-                !allowedModes.includes(dep.route_type)
-            ) {
-                return;
-            }
-            const routeName = fixRouteName(
-                dep.chateau_id,
-                dep.short_name || dep.long_name || dep.route_id,
-                dep.route_id,
+        let filtered = items;
+        if (allowedModes.length > 0) {
+            filtered = items.filter(
+                (item) =>
+                    item.routeType !== undefined &&
+                    allowedModes.includes(item.routeType),
             );
-
-            Object.keys(dep.directions)
-                .map((key) => dep.directions[key])
-                .forEach((directionGroup) => {
-                    Object.keys(directionGroup)
-                        .map((key) => directionGroup[key])
-                        .forEach((dir) => {
-                            dir.trips.forEach((trip) => {
-                                const stopInfo =
-                                    data.stop[dep.chateau_id]?.[trip.stop_id];
-                                const stopName = stopInfo
-                                    ? fixStationName(stopInfo.name)
-                                    : "Unknown Stop";
-
-                                const arrivalTime =
-                                    trip.departure_realtime ||
-                                    trip.departure_schedule;
-                                if (!arrivalTime) return;
-
-                                const now = Date.now() / 1000;
-                                const min = Math.floor(
-                                    (arrivalTime - now) / 60,
-                                );
-                                if (min < -2) return;
-
-                                items.push({
-                                    key: `${dep.chateau_id}-${trip.trip_id}-${trip.stop_id}`,
-                                    routeShortName: routeName,
-                                    headsign: fixHeadsignText(dir.headsign),
-                                    formattedTime: new Date(
-                                        arrivalTime * 1000,
-                                    ).toLocaleTimeString([], {
-                                        hour: "numeric",
-                                        minute: "2-digit",
-                                        hour12: !use24h,
-                                    }),
-                                    min: min,
-                                    color: fixRouteColor(
-                                        dep.chateau_id,
-                                        dep.route_id,
-                                        dep.color,
-                                    ),
-                                    textColor: fixRouteTextColor(
-                                        dep.chateau_id,
-                                        dep.route_id,
-                                        dep.text_color,
-                                    ),
-                                    stopName: stopName,
-                                    chateau: dep.chateau_id,
-                                    tripId: trip.trip_id,
-                                    stopId: trip.stop_id,
-                                });
-                            });
-                        });
-                });
-        });
-
-        // Deduplicate
-        const uniqueItems = new Map();
-        items.forEach((item) => {
-            if (uniqueItems.has(item.key)) {
-                const existing = uniqueItems.get(item.key);
-                if (item.min < existing.min) {
-                    uniqueItems.set(item.key, item);
-                }
-            } else {
-                uniqueItems.set(item.key, item);
-            }
-        });
-
-        const sortedItems = Array.from(uniqueItems.values());
-        sortedItems.sort((a, b) => a.min - b.min);
-        return sortedItems.slice(0, 50);
-    }
-
-    function getActiveAlerts(
-        data: NearbyDeparturesFromCoordsV2Response | null,
-        config: any,
-    ) {
-        if (!data || config.type !== "alerts") return [];
-        const alerts: string[] = [];
-        if (data.alerts) {
-            Object.values(data.alerts).forEach((agencyAlerts) => {
-                Object.values(agencyAlerts).forEach((alert) => {
-                    const text =
-                        alert.header_text?.translation?.[0]?.text ||
-                        alert.description_text?.translation?.[0]?.text;
-                    if (text) alerts.push(text);
-                });
-            });
         }
-        return alerts;
+
+        return filtered.slice(0, 50);
     }
 
-    $: displayItems = getDisplayItems(data, config, use24h, minuteTick);
-    $: activeAlerts = getActiveAlerts(data, config);
+    $: displayItems = getDisplayItemsFiltered(allDepartures, config);
 
     function handleEdit(e: Event) {
         e.stopPropagation();
@@ -182,13 +74,6 @@
                     {#each displayItems as item (item.key)}
                         <div
                             class="rounded leading-none flex items-center justify-between cursor-pointer shadow hover:brightness-110 shrink-0"
-                            style:background-color={item.color}
-                            style:color={item.textColor}
-                            style:min-height="40px"
-                            style:padding="0 8px"
-                            on:click={() => {
-                                window.location.href = `/?mode=enroute&chateau=${item.chateau}&trip=${item.tripId}`;
-                            }}
                             role="button"
                             tabindex="0"
                         >

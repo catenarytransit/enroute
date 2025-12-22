@@ -13,6 +13,16 @@
 		/>
 		<title>Catenary Enroute</title>
 		<script src="../styles/global.css"></script>
+		<script is:inline>
+			// Apply font preference immediately to prevent FOUC
+			const font = localStorage.getItem("enroute_font");
+			if (font === "helvetica") {
+				document.documentElement.style.setProperty(
+					"--font-main",
+					"var(--font-helvetica)",
+				);
+			}
+		</script>
 	</head>
 	<body>
 		<slot />

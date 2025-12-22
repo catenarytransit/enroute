@@ -12,14 +12,14 @@
         const query = new URLSearchParams(window.location.search);
         mode = query.get("mode");
 
-        function handleKeyDown(e: KeyboardEvent) {
-            if (e.key.toLowerCase() === "c") {
-                showConfig = !showConfig;
-            }
-        }
+        // function handleKeyDown(e: KeyboardEvent) {
+        //     if (e.key.toLowerCase() === "c") {
+        //         showConfig = !showConfig;
+        //     }
+        // }
 
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
+        // window.addEventListener("keydown", handleKeyDown);
+        // return () => window.removeEventListener("keydown", handleKeyDown);
     });
 </script>
 
@@ -28,7 +28,7 @@
 {:else if mode === "station"}
     <StationDisplay />
 {:else}
-    <DefaultDisplay />
+    <DefaultDisplay on:openConfig={() => (showConfig = true)} />
     <div
         class="fixed top-0 left-0 h-[56.25vw] w-screen -z-20 bg-cover bg-no-repeat bg-center"
         style="background-image: url(/art/default.png)"

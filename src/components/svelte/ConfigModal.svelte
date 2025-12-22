@@ -12,6 +12,7 @@
     let primaryColor = "";
     let secondaryColor = "";
     let use24HourTime = true;
+    let fontPreference = "barlow";
 
     let mapContainer: HTMLDivElement;
     let map: maplibregl.Map | null = null;
@@ -34,6 +35,9 @@
         if (urlPrimary) primaryColor = urlPrimary;
         if (urlSecondary) secondaryColor = urlSecondary;
         use24HourTime = url24h;
+
+        const storedFont = localStorage.getItem("enroute_font");
+        if (storedFont) fontPreference = storedFont;
 
         // Initialize Map
         const lat = configLat ? parseFloat(configLat) : 34.0522;
@@ -90,6 +94,7 @@
         localStorage.setItem(`${prefix}primary`, primaryColor);
         localStorage.setItem(`${prefix}secondary`, secondaryColor);
         localStorage.setItem(`${prefix}24h`, use24HourTime.toString());
+        localStorage.setItem(`${prefix}font`, fontPreference);
 
         localStorage.setItem(`${prefix}lat`, configLat);
         localStorage.setItem(`${prefix}lon`, configLon);
@@ -259,6 +264,22 @@
                                 >
                             </div>
                         </label>
+                    </div>
+
+                    <!-- Font Selection -->
+                    <div>
+                        <label
+                            class="block text-xs font-bold mb-2 opacity-80"
+                            for="fontSelect">Font Family</label
+                        >
+                        <select
+                            id="fontSelect"
+                            bind:value={fontPreference}
+                            class="w-full bg-slate-900/40 border border-slate-500 rounded-lg p-3 text-sm font-bold focus:outline-none focus:border-blue-500 transition-colors"
+                        >
+                            <option value="barlow">Barlow (Default)</option>
+                            <option value="helvetica">Helvetica</option>
+                        </select>
                     </div>
                 </div>
             </div>

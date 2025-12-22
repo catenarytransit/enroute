@@ -1,11 +1,33 @@
 @import "tailwindcss";
 
+@font-face {
+    font-family: 'Helvetica';
+    src: url('/fonts/Helvetica/Helvetica.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Helvetica';
+    src: url('/fonts/Helvetica/Helvetica-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Helvetica';
+    src: url('/fonts/Helvetica/Helvetica-Oblique.ttf') format('truetype');
+    font-weight: 400;
+    font-style: italic;
+}
+
 @theme {
   --color-background: #06121F;
   --color-darksky: #0A233F;
   --color-seashore: #42A7C5;
   --color-danger: #EF3841;
   --font-barlow: 'Barlow', sans-serif;
+  --font-helvetica: 'Helvetica', sans-serif;
 }
 
 :root {
@@ -13,6 +35,7 @@
     --catenary-darksky: #0A233F;
     --catenary-seashore: #42A7C5;
     --catenary-danger: #EF3841;
+    --font-main: var(--font-barlow);
 }
 
 html {
@@ -31,7 +54,7 @@ body {
 }
 
 * {
-    font-family: 'Barlow', sans-serif !important;
+    font-family: var(--font-main) !important;
     user-select: none !important;
 }
 
