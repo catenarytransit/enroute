@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
-import { EnrouteDisplayLogic } from "../utils/EnrouteDisplayLogic";
-import type { TripInformation } from "./types/TripInformation";
-import { fixStationName } from "./data/agencyspecific";
+import { EnrouteDisplayLogic } from "../../utils/EnrouteDisplayLogic";
+import type { TripInformation } from "../types/TripInformation";
+import { fixStationName } from "../data/agencyspecific";
+import { loadDynamicPanes } from "../../utils/DynamicLoader";
 
 export const EnrouteDisplay: React.FC = () => {
     // State
@@ -16,7 +17,7 @@ export const EnrouteDisplay: React.FC = () => {
 
     // Logic Instance
     const logicRef = useRef(new EnrouteDisplayLogic());
-    
+
     // Config
     const getSetting = (key: string, defaultValue = "") => {
         if (typeof window === "undefined") return defaultValue;
@@ -25,7 +26,7 @@ export const EnrouteDisplay: React.FC = () => {
     };
 
     const use24h = getSetting("24h") !== "false";
-    
+
     // Resize Handler
     useEffect(() => {
         const handleResize = () => {
@@ -48,7 +49,7 @@ export const EnrouteDisplay: React.FC = () => {
         const params = new URLSearchParams(window.location.search);
         const chateau = params.get("chateau");
         const trip = params.get("trip");
-        
+
         const fetchIt = async () => {
             const result = await logicRef.current.fetchTripInfo(
                 chateau,
@@ -83,10 +84,17 @@ export const EnrouteDisplay: React.FC = () => {
         };
     }, [use24h, isPortrait]);
 
+    // Dynamically load panes
+    useEffect(() => {
+        loadDynamicPanes().then((loadedPanes) => {
+            logicRef.current.updatePanes(loadedPanes);
+        });
+    }, []);
+
     // Computed Units & Metrics
     const vUnit = isPortrait ? "vw" : "vh";
     const hUnit = isPortrait ? "vh" : "vw";
-    
+
     // Helper to get unit string value
     const getVal = (val: number, unit: string) => `${val}${unit}`;
 
@@ -148,7 +156,7 @@ export const EnrouteDisplay: React.FC = () => {
                         >
                             {tripInfo.route}
                             {tripInfo.run && <span className="font-normal">#{tripInfo.run}</span>}
-                             {" to "} 
+                             {" to "}
                             {fixStationName(tripInfo.finalStop)}
                         </span>
                         <span className="font-medium font-mono" style={{ fontSize: `3${vUnit}` }}>
@@ -163,7 +171,7 @@ export const EnrouteDisplay: React.FC = () => {
 
                     {/* Stop List */}
                     <div
-                        className="fixed grid grid-cols-1 p-[1hUnit]" // Note: manual replacement of unit in style object below
+                        className="fixed grid grid-cols-1 p-[1hUnit]"
                         style={{
                             top: `7${vUnit}`,
                             right: isPortrait ? `2${vUnit}` : `1${hUnit}`,
@@ -173,7 +181,7 @@ export const EnrouteDisplay: React.FC = () => {
                         }}
                     >
                         {tripInfo.nextStops.map((stop, index) => (
-                            <div key={stop.key || index} className="transition-all duration-300"> 
+                            <div key={stop.key || index} className="transition-all duration-300">
                                 {stop.isSpacer ? (
                                     <div
                                         className="flex items-center justify-center text-slate-300 italic font-bold"
@@ -380,3 +388,5 @@ export const EnrouteDisplay: React.FC = () => {
         </div>
     );
 };
+
+

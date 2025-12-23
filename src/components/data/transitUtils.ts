@@ -1,6 +1,4 @@
-
-import type { NearbyDeparturesFromCoordsV2Response } from "../types/birchtypes";
-import type { DisplayItem } from "../types/DisplayItem";
+import type {AlertV2, NearbyDeparturesFromCoordsV2Response, NearbyDepartureV2} from "../types/birchtypes";
 import {
     fixHeadsignText,
     fixRouteColor,
@@ -12,15 +10,7 @@ import {
 export function flattenDepartures(
     data: NearbyDeparturesFromCoordsV2Response | null,
     use24h: boolean,
-    tick: number, // kept for reactivity triggers, though unused in logic directly (except maybe for ensuring re-run?)
-    // actually in DefaultDisplay it was unused inside the function but passed to trigger Svelte reactivity. 
-    // Typescript might complain if unused. I'll remove it from args if not used, or keep it.
-    // In DefaultDisplay: `min` calculation uses `Date.now()`, which is independent of `tick` unless `tick` forces re-eval.
-    // I should create 'min' based on current time. 
-    // In DefaultDisplay, `tick` changed every 30s. 
-    // The function uses `Date.now()`. So calling it again re-calculates mins.
-    // I'll keep it as is, or maybe just remove it and let the caller handle reactivity.
-    // I'll keep `Date.now()` logic.
+    tick: number
 ): DisplayItem[] {
     if (!data) return [];
 
@@ -114,17 +104,43 @@ export function flattenDepartures(
     return sortedItems;
 }
 
-export function getActiveAlerts(nearbyData: NearbyDeparturesFromCoordsV2Response | null): string[] {
-    const alerts: string[] = [];
+export function getActiveAlerts(nearbyData: NearbyDeparturesFromCoordsV2Response | null): AlertV2[] {
+    const alerts: AlertV2[] = [];
     if (nearbyData?.alerts) {
         Object.values(nearbyData.alerts).forEach((agencyAlerts) => {
             Object.values(agencyAlerts).forEach((alert) => {
-                const text =
-                    alert.header_text?.translation?.[0]?.text ||
-                    alert.description_text?.translation?.[0]?.text;
-                if (text) alerts.push(text);
+                alerts.push(alert);
             });
         });
     }
     return alerts;
+}
+
+export function getAlertColor(alert: AlertV2): string {
+    // Effect-driven colors (what riders experience)
+    switch (alert.effect) {
+        case 1: // NO_SERVICE
+            return "bg-red-600/20 border-red-500 text-red-200";
+        case 2: // REDUCED_SERVICE
+            return "bg-orange-500/20 border-orange-400 text-orange-100";
+        case 3: // SIGNIFICANT_DELAYS
+            return "bg-yellow-500/20 border-yellow-400 text-yellow-100";
+        case 4: // DETOUR
+            return "bg-blue-500/20 border-blue-400 text-blue-100";
+        case 5: // ADDITIONAL_SERVICE
+            return "bg-green-500/20 border-green-400 text-green-100";
+        case 6: // MODIFIED_SERVICE
+            return "bg-emerald-500/20 border-emerald-400 text-emerald-100";
+    }
+
+    // Cause-based fallback
+    switch (alert.cause) {
+        case 1: // ACCIDENT
+        case 2: // CONSTRUCTION
+            return "bg-orange-500/20 border-orange-400 text-orange-100";
+        case 3: // WEATHER
+            return "bg-indigo-500/20 border-indigo-400 text-indigo-100";
+    }
+
+    return "bg-slate-700 border-slate-600 text-slate-200";
 }

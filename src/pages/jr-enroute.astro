@@ -1,8 +1,8 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { JREnrouteDisplay } from "../components/JREnrouteDisplay";
+import JREnroute from "../components/display/JREnroute";
 ---
 
 <Layout>
-    <JREnrouteDisplay client:only="react" />
+    <JREnroute client:only="react" />
 </Layout>

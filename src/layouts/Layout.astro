@@ -1,3 +1,6 @@
+---
+import ConfigModalClient from "../components/config/modal";
+---
 <!doctype html>
 <html lang="en">
 	<head>
@@ -82,6 +85,7 @@
 		<slot name="head" />
 	</head>
 	<body>
+		<ConfigModalClient client:load="react" />
 		<slot />
 	</body>
 </html>

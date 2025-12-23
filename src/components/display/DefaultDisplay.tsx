@@ -1,15 +1,13 @@
+import React, { useEffect, useState, type JSX } from "react";
+import Pane from "../Pane";
+import { PaneConfigModal } from "../PaneConfigModal";
+import type { PaneConfig } from "../types/PaneConfig";
+import { loadDynamicPanes } from "utils/DynamicLoader.ts";
 
-import React, { useEffect, useState, useCallback } from "react";
-import { Pane } from "./Pane";
-import { PaneConfigModal } from "./PaneConfigModal";
-import { ConfigModal } from "./ConfigModal";
-import type { PaneConfig } from "./types/PaneConfig";
 
-interface DefaultDisplayProps {
-    // Add any props if needed
-}
+// theres a bug where we can't have a display called "Default" because of the file name conflicting with the default export
 
-export const DefaultDisplay: React.FC<DefaultDisplayProps> = () => {
+export function DefaultDisplay(): JSX.Element {
     // Global State
     const [deviceLocation, setDeviceLocation] = useState<{ lat: number; lon: number } | null>(null);
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -22,14 +20,11 @@ export const DefaultDisplay: React.FC<DefaultDisplayProps> = () => {
     const [layout, setLayout] = useState<{ rows: number; cols: number; panes: PaneConfig[] }>({
         rows: 1,
         cols: 1,
-        panes: [{ id: "p1", type: "departures" }],
+        panes: [{ id: "p1", type: "alerts" }],
     });
-    
+
     const [isEditing, setIsEditing] = useState(false);
     const [editingPaneId, setEditingPaneId] = useState<string | null>(null);
-    
-    // Global Config State
-    const [isGlobalConfigOpen, setIsGlobalConfigOpen] = useState(false);
 
     // Settings
     const getSetting = (key: string) => {
@@ -39,7 +34,7 @@ export const DefaultDisplay: React.FC<DefaultDisplayProps> = () => {
     };
 
     const use24h = getSetting("24h") !== "false";
-    const theme = getSetting("theme") || "default";
+    const theme = getSetting("theme") || "standard";
     const clickableTrips = getSetting("clickable_trips") === "true";
 
     // Initialization and Timer
@@ -90,14 +85,20 @@ export const DefaultDisplay: React.FC<DefaultDisplayProps> = () => {
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
         }
-        
-        // Listen for openConfig event
-        const handleOpenConfig = () => setIsGlobalConfigOpen(true);
-        window.addEventListener("openConfig", handleOpenConfig);
+
+        // Dynamic Panes
+        loadDynamicPanes().then((loadedPanes) => {
+            setLayout((prevLayout) => ({
+                ...prevLayout,
+                panes: loadedPanes.map((pane) => ({
+                    id: pane.metadata.title,
+                    type: pane.metadata.type as PaneConfig['type'], // Cast type to match PaneConfig['type']
+                })),
+            }));
+        });
 
         return () => {
             window.removeEventListener("resize", handleResize);
-            window.removeEventListener("openConfig", handleOpenConfig);
             clearInterval(timer);
         };
     }, []);
@@ -264,17 +265,13 @@ export const DefaultDisplay: React.FC<DefaultDisplayProps> = () => {
             </div>
 
             {/* Background Art */}
-            {theme === "default" && (
+            {theme === "standard" && (
                 <div
                     className="fixed top-0 left-0 w-screen h-screen bg-cover bg-center opacity-30 pointer-events-none -z-10"
                     style={{ backgroundImage: "url(/art/default.png)" }}
                 ></div>
             )}
-            
-            {/* Global Config Modal */}
-            {isGlobalConfigOpen && (
-                <ConfigModal onClose={() => setIsGlobalConfigOpen(false)} />
-            )}
+
 
             {/* Pane Config Modal */}
             {isEditing && editingPaneId && (
@@ -289,4 +286,4 @@ export const DefaultDisplay: React.FC<DefaultDisplayProps> = () => {
             )}
         </div>
     );
-};
+}

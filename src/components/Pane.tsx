@@ -3,11 +3,16 @@ import { flattenDepartures, getActiveAlerts } from "./data/transitUtils";
 import {
     getDisplayItemsFiltered,
     groupDepartures,
-    type RouteGroup,
 } from "../utils/PaneLogic";
 import type { NearbyDeparturesFromCoordsV2Response } from "./types/birchtypes";
 import type { DisplayItem } from "./types/DisplayItem";
 import type { PaneConfig } from "./types/PaneConfig";
+import { loadDynamicPanes } from "../utils/DynamicLoader";
+import AlertsPane from "./pane/AlertsPane.tsx";
+import {EnroutePane} from "./pane/EnroutePane.tsx";
+import GroupedByRoute from "./pane/GroupedByRoute.tsx";
+import SimpleMode from "components/pane/SimpleMode.tsx";
+import TrainDeparture from "components/pane/TrainDeparture.tsx";
 
 interface PaneProps {
     config: PaneConfig;
@@ -19,9 +24,10 @@ interface PaneProps {
     deviceLocation?: { lat: number; lon: number } | null;
     clickableTrips?: boolean;
     onEdit?: () => void;
+    nearbyData?: NearbyDeparturesFromCoordsV2Response | null; // Added proper typing for departures
 }
 
-export const Pane: React.FC<PaneProps> = ({
+const Pane: React.FC<PaneProps> = ({
     config,
     isEditing = false,
     style,
@@ -31,16 +37,19 @@ export const Pane: React.FC<PaneProps> = ({
     deviceLocation = null,
     clickableTrips = false,
     onEdit,
+    nearbyData: externalNearbyData, // Destructure external nearbyData prop
 }) => {
     // Derived Configuration
     const effectiveLocation = config.location || deviceLocation;
     const radius = config.radius || 1500;
 
     // State
-    const [nearbyData, setNearbyData] = useState<NearbyDeparturesFromCoordsV2Response | null>(null);
+    const [nearbyData, setNearbyData] = useState<NearbyDeparturesFromCoordsV2Response | null>(() => externalNearbyData || null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [minuteTick, setMinuteTick] = useState(0);
+    const [dynamicPanes, setDynamicPanes] = useState<any[]>([]);
+    const [dynamicDisplaysState, setDynamicDisplays] = useState<any[]>([]);
 
     // Fetch Logic
     useEffect(() => {
@@ -103,17 +112,21 @@ export const Pane: React.FC<PaneProps> = ({
     }, []);
 
     // Memoized Computations
+    console.log("Pane nearbyData:", nearbyData);
     const allDepartures = useMemo(
         () => flattenDepartures(nearbyData, use24h, minuteTick),
         [nearbyData, use24h, minuteTick]
     );
 
+    console.log("Pane allDepartures:", allDepartures);
     const activeAlerts = useMemo(() => getActiveAlerts(nearbyData), [nearbyData]);
 
     const displayItems = useMemo(
         () => getDisplayItemsFiltered(allDepartures, config),
         [allDepartures, config]
     );
+
+    console.log("Pane displayItems:", displayItems);
 
     const groupedItems = useMemo(
         () =>
@@ -122,22 +135,6 @@ export const Pane: React.FC<PaneProps> = ({
                 : [],
         [displayItems, config.displayMode]
     );
-
-    const gapStyle: React.CSSProperties =
-        config.simpleListGap !== undefined
-            ? { gap: `${parseFloat(config.simpleListGap) * 0.25}rem` }
-            : { gap: "0.5rem" };
-
-    const paddingStyle: React.CSSProperties =
-        config.simplePaddingX !== undefined && config.simplePaddingY !== undefined
-            ? {
-                  padding: `${parseFloat(config.simplePaddingY) * 0.25}rem ${parseFloat(
-                      config.simplePaddingX
-                  ) * 0.25}rem`,
-              }
-            : config.useRouteColor
-            ? { padding: "0.25rem 0.5rem" }
-            : { padding: 0 };
 
     // Handlers
     const handleTripClick = (item: DisplayItem) => {
@@ -151,6 +148,20 @@ export const Pane: React.FC<PaneProps> = ({
         e.stopPropagation();
         onEdit?.();
     };
+
+    useEffect(() => {
+        async function fetchDynamicPanes() {
+            try {
+                const panes = await loadDynamicPanes();
+                console.log("Dynamic Panes:", panes);
+                setDynamicPanes(panes);
+            } catch (err) {
+                console.error("Error loading dynamic panes:", err);
+            }
+        }
+
+        fetchDynamicPanes();
+    }, []);
 
     return (
         <div
@@ -166,7 +177,7 @@ export const Pane: React.FC<PaneProps> = ({
                 } ${theme === "default" ? "bg-slate-900/80" : ""}`}
             >
                 <span className="font-bold text-sm text-slate-300 truncate">
-                    {config.name || (config.type === "departures" ? "Departures" : "Alerts")}
+                    {config.id || `${config.type.charAt(0).toUpperCase() + config.type.slice(1)}`}
                 </span>
                 {isEditing && (
                     <button
@@ -179,7 +190,7 @@ export const Pane: React.FC<PaneProps> = ({
             </div>
 
             {/* Content */}
-            <div className="flex-grow overflow-auto p-2 scrollbar-hide">
+            <div className="grow overflow-auto p-2 scrollbar-hide">
                 {loading && !nearbyData ? (
                     <div className="flex items-center justify-center h-full">
                         <span className="text-white/50 text-xs animate-pulse">Loading data...</span>
@@ -189,225 +200,27 @@ export const Pane: React.FC<PaneProps> = ({
                         <span className="text-red-400 text-xs">{error}</span>
                     </div>
                 ) : config.type === "departures" ? (
-                    <div className="flex flex-col" style={gapStyle}>
-                        {displayItems.length > 0 ? (
-                            <>
-                                {config.displayMode === "train_departure" ? (
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left font-mono text-sm border-spacing-0">
-                                            <thead>
-                                                <tr className={`text-xs font-bold text-slate-400 border-b ${theme === "blue_white" ? "border-white" : "border-slate-700"}`}>
-                                                    {config.showRouteShortName !== false && (
-                                                        <th className="px-2 py-1">Rte</th>
-                                                    )}
-                                                    <th className="px-2 py-1">Time</th>
-                                                    {config.showTripShortName !== false && (
-                                                        <th className="px-2 py-1">Trip</th>
-                                                    )}
-                                                    <th className="px-2 py-1 w-full">Direction</th>
-                                                    <th className="px-2 py-1 text-right">Plat</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {displayItems.map((item) => (
-                                                    <tr
-                                                        key={item.key}
-                                                        className={`items-center ${
-                                                            config.useRouteColor
-                                                                    ? "text-white font-bold"
-                                                                    : `border-b ${theme === "blue_white" ? "border-white" : "border-slate-700"} last:border-0`
-                                                        } ${
-                                                            clickableTrips
-                                                                ? "cursor-pointer hover:bg-white/10"
-                                                                : ""
-                                                        }`}
-                                                        style={
-                                                            config.useRouteColor
-                                                                ? {
-                                                                      backgroundColor: item.color,
-                                                                      color: item.textColor,
-                                                                  }
-                                                                : {}
-                                                        }
-                                                        onClick={() => handleTripClick(item)}
-                                                    >
-                                                        {config.showRouteShortName !== false && (
-                                                            <td className="px-2 py-1 font-bold">
-                                                                {item.routeShortName}
-                                                            </td>
-                                                        )}
-                                                        <td className="px-2 py-1 whitespace-nowrap">
-                                                            {item.formattedTime}
-                                                        </td>
-                                                        {config.showTripShortName !== false && (
-                                                            <td className="px-2 py-1 font-bold">
-                                                                {item.tripShortName}
-                                                            </td>
-                                                        )}
-                                                        <td className="px-2 py-1 truncate max-w-[100px]">
-                                                            {item.headsign}
-                                                        </td>
-                                                        <td className="px-2 py-1 text-right">
-                                                            {item.platform || "-"}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                ) : config.displayMode === "grouped_by_route" ? (
-                                    <div className="flex flex-col gap-2">
-                                        {groupedItems.map((group) => (
-                                            <div
-                                                key={group.routeShortName}
-                                                className="flex rounded overflow-hidden border border-slate-600 bg-slate-800/50"
-                                            >
-                                                {/* Route Badge */}
-                                                <div
-                                                    className={`w-12 flex items-center justify-center font-bold text-2xl shrink-0 p-2 border-r ${theme === "blue_white" ? "border-white" : "border-slate-700"}`}
-                                                    style={{
-                                                        backgroundColor:
-                                                            config.groupingTheme === "ratp"
-                                                                ? group.routeColor
-                                                                : "rgba(30, 41, 59, 0.5)",
-                                                        color:
-                                                            config.groupingTheme === "ratp"
-                                                                ? group.routeTextColor
-                                                                : group.routeColor,
-                                                    }}
-                                                >
-                                                    {config.groupingTheme === "ratp" ? (
-                                                        <div className="w-8 h-8 rounded-full border-2 border-current flex items-center justify-center">
-                                                            {group.routeShortName.replace(" Line", "")}
-                                                        </div>
-                                                    ) : (
-                                                        <span
-                                                            className="text-white"
-                                                            style={{ color: group.routeColor }}
-                                                        >
-                                                            {group.routeShortName.replace(" Line", "")}
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                {/* Directions */}
-                                                <div className="flex flex-col flex-grow text-xs">
-                                                    {group.directions.map((direction, idx) => (
-                                                        <div
-                                                            key={direction.headsign}
-                                                            className={`flex items-center justify-between p-2 gap-2 ${
-                                                                idx < group.directions.length - 1
-                                                                    ? `border-b ${theme === "blue_white" ? "border-white" : "border-slate-700"}`
-                                                                    : ""
-                                                            } ${idx % 2 === 0 ? "bg-white/5" : ""}`}
-                                                        >
-                                                            <div className="font-bold truncate text-sm flex-grow">
-                                                                {direction.headsign}
-                                                            </div>
-                                                            <div className="flex items-center gap-2 shrink-0">
-                                                                {direction.items.map((item) => (
-                                                                    <div
-                                                                        key={item.key}
-                                                                        className={
-                                                                            config.groupingTheme ===
-                                                                            "ratp"
-                                                                                ? "bg-black/40 rounded px-1.5 py-0.5 min-w-[3rem] text-center"
-                                                                                : ""
-                                                                        }
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            handleTripClick(item);
-                                                                        }}
-                                                                        role="button"
-                                                                        tabIndex={0}
-                                                                        style={clickableTrips ? {cursor: "pointer", opacity: 0.8} : {}}
-
-                                                                    >
-                                                                        <span
-                                                                            className={`font-bold text-lg leading-none ${
-                                                                                config.groupingTheme ===
-                                                                                "ratp"
-                                                                                    ? "text-yellow-500"
-                                                                                    : "text-white"
-                                                                            }`}
-                                                                        >
-                                                                            {item.min}
-                                                                        </span>
-                                                                        <span className="text-[9px] opacity-70 ml-0.5 leading-none">
-                                                                            min
-                                                                        </span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    /* Simple Mode */
-                                    displayItems.map((item) => (
-                                        <div
-                                            key={item.key}
-                                            className={`rounded leading-none flex items-center justify-between shadow hover:brightness-110 shrink-0 ${
-                                                clickableTrips ? "cursor-pointer" : "cursor-default"
-                                            }`}
-                                            style={{
-                                                ...(config.useRouteColor
-                                                    ? {
-                                                          backgroundColor: item.color,
-                                                          color: item.textColor,
-                                                      }
-                                                    : {}),
-                                                ...paddingStyle,
-                                            }}
-                                            onClick={() => handleTripClick(item)}
-                                            role="button"
-                                            tabIndex={0}
-                                        >
-                                            <div className="flex-grow overflow-hidden mr-2">
-                                                <div className="flex items-baseline gap-1 overflow-hidden">
-                                                    <span className="font-bold whitespace-nowrap">
-                                                        {item.routeShortName}
-                                                    </span>
-                                                    <span className="font-medium truncate">
-                                                        to {item.headsign}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className="font-bold text-lg whitespace-nowrap">
-                                                {item.min}
-                                                <span className="text-xs font-light ml-0.5">min</span>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </>
-                        ) : (
-                            <div className="text-white/50 text-center text-sm py-4">
-                                No departures found.
-                            </div>
-                        )}
-                    </div>
+                    config.displayMode === "simple" ? (
+                        <SimpleMode displayItems={displayItems} config={config} clickableTrips={clickableTrips}
+                                    handleTripClick={handleTripClick} paddingStyle={null} />
+                    ) : config.displayMode === "grouped_by_route" ? (
+                        <GroupedByRoute groupedItems={groupedItems} config={config} theme={theme} clickableTrips={clickableTrips} handleTripClick={handleTripClick} />
+                    ) : config.displayMode === "train_departure" ? (
+                        <TrainDeparture displayItems={displayItems} config={config} theme={theme} clickableTrips={clickableTrips} handleTripClick={handleTripClick} />
+                    ) : null
+                ) : config.type === "alerts" ? (
+                    <AlertsPane
+                        config={config}
+                        activeAlerts={activeAlerts}
+                        theme={theme}
+                        isEditing={isEditing}
+                        onEdit={onEdit}
+                    />
                 ) : (
-                    /* Alerts View */
-                    <div className="flex flex-col gap-2">
-                        {activeAlerts.length > 0 ? (
-                            activeAlerts.map((alert, idx) => (
-                                <div
-                                    key={idx}
-                                    className="bg-yellow-900/40 border border-yellow-700/50 p-2 rounded text-sm text-yellow-100"
-                                >
-                                    {alert}
-                                </div>
-                            ))
-                        ) : (
-                            <div className="text-white/50 text-center text-sm py-4">
-                                No active alerts.
-                            </div>
-                        )}
-                    </div>
+                    dynamicPanes.map((pane, index) => {
+                        const PaneComponent = pane.component;
+                        return <PaneComponent key={index} {...pane.metadata} />;
+                    })
                 )}
             </div>
 
@@ -419,11 +232,11 @@ export const Pane: React.FC<PaneProps> = ({
                     role="button"
                     tabIndex={0}
                 >
-                    <span className="bg-black/80 text-white px-3 py-1 rounded-full text-xs font-bold pointer-events-none">
-                        Configure Pane
-                    </span>
+                    <span className="bg-black/80 text-white px-3 py-1 rounded-full text-xs font-bold pointer-events-none">Configure Pane</span>
                 </div>
             )}
         </div>
     );
 };
+
+export default Pane;

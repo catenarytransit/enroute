@@ -3,6 +3,9 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { PaneConfig } from "./types/PaneConfig";
 
+// Dynamically import all available pane types
+const availablePaneTypes: PaneConfig["type"][] = ['alerts', "departures", "info"]; // Replace with dynamic imports if possible
+
 interface PaneConfigModalProps {
     pane: PaneConfig;
     onSave: (config: Partial<PaneConfig>) => void;
@@ -16,7 +19,7 @@ export const PaneConfigModal: React.FC<PaneConfigModalProps> = ({
 }) => {
     // Form State
     const [name, setName] = useState(pane.name || "");
-    const [type, setType] = useState(pane.type);
+    const [type, setType] = useState(pane.type || "departures");
     const [allowedModes, setAllowedModes] = useState<number[]>(pane.allowedModes || []);
     const [displayMode, setDisplayMode] = useState<"simple" | "train_departure" | "grouped_by_route">(
         pane.displayMode || "simple"
@@ -243,7 +246,7 @@ export const PaneConfigModal: React.FC<PaneConfigModalProps> = ({
 
     return (
         <div
-            className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/80 z-100 flex items-center justify-center p-4"
             onClick={onClose}
             role="dialog"
         >
@@ -258,7 +261,7 @@ export const PaneConfigModal: React.FC<PaneConfigModalProps> = ({
                     </button>
                 </div>
 
-                <div className="flex-grow overflow-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grow overflow-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Left Config Column */}
                     <div className="space-y-6">
                         <div>
@@ -269,7 +272,7 @@ export const PaneConfigModal: React.FC<PaneConfigModalProps> = ({
                                 type="text"
                                 id="paneName"
                                 className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-600 focus:border-blue-500 outline-none"
-                                placeholder={type === "departures" ? "Departures" : "Alerts"}
+                                placeholder={type}
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                             />
@@ -277,27 +280,20 @@ export const PaneConfigModal: React.FC<PaneConfigModalProps> = ({
 
                         <div>
                             <label className="block text-xs font-bold text-slate-400 mb-1">Type</label>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => setType("departures")}
-                                    className={`flex-1 py-2 rounded text-sm font-bold border transition-colors ${
-                                        type === "departures"
-                                            ? "bg-blue-600 border-blue-400 text-white"
-                                            : "bg-slate-900 border-slate-600 text-slate-400 hover:bg-slate-700"
-                                    }`}
-                                >
-                                    Departures
-                                </button>
-                                <button
-                                    onClick={() => setType("alerts")}
-                                    className={`flex-1 py-2 rounded text-sm font-bold border transition-colors ${
-                                        type === "alerts"
-                                            ? "bg-yellow-600 border-yellow-400 text-black"
-                                            : "bg-slate-900 border-slate-600 text-slate-400 hover:bg-slate-700"
-                                    }`}
-                                >
-                                    Alerts
-                                </button>
+                            <div className="grid grid-cols-2 gap-2">
+                                {availablePaneTypes.map((paneType) => (
+                                    <button
+                                        key={paneType}
+                                        onClick={() => setType(paneType)}
+                                        className={`flex-1 py-2 rounded text-sm font-bold border transition-colors ${
+                                            type === paneType
+                                                ? "bg-blue-600 border-blue-400 text-white"
+                                                : "bg-slate-900 border-slate-600 text-slate-400 hover:bg-slate-700"
+                                        }`}
+                                    >
+                                        {paneType.charAt(0).toUpperCase() + paneType.slice(1)}
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
@@ -496,7 +492,7 @@ export const PaneConfigModal: React.FC<PaneConfigModalProps> = ({
                             </div>
                         </div>
 
-                        <div className="relative w-full h-[300px] bg-black rounded-lg border border-slate-600 overflow-hidden">
+                        <div className="relative w-full h-75 bg-black rounded-lg border border-slate-600 overflow-hidden">
                             <div ref={mapContainerRef} className="w-full h-full"></div>
                         </div>
 

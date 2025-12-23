@@ -1,8 +1,8 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { StationDisplay } from "../components/StationDisplay";
+import Station from "../components/display/Station";
 ---
 
 <Layout>
-    <StationDisplay client:only="react" />
+    <Station client:only="react" />
 </Layout>
