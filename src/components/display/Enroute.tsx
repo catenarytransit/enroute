@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef, Fragment } from "react";
 import { EnrouteDisplayLogic } from "../../utils/EnrouteDisplayLogic";
 import type { TripInformation } from "../types/TripInformation";
 import { fixStationName } from "../data/agencyspecific";
-import { loadDynamicPanes } from "../../utils/DynamicLoader";
+import { DisplayHeader } from "../common/DisplayHeader";
 
 export const EnrouteDisplay: React.FC = () => {
     // State
@@ -68,7 +68,7 @@ export const EnrouteDisplay: React.FC = () => {
                     if (result.tripInfo) setTripInfo(result.tripInfo);
                     // Explicitly handle announcement text init if provided immediately (though callback handles updates)
                     if (result.announcementTextChunk !== undefined) {
-                         setAnnouncementTextChunk(result.announcementTextChunk);
+                        setAnnouncementTextChunk(result.announcementTextChunk);
                     }
                 }
             }
@@ -84,12 +84,6 @@ export const EnrouteDisplay: React.FC = () => {
         };
     }, [use24h, isPortrait]);
 
-    // Dynamically load panes
-    useEffect(() => {
-        loadDynamicPanes().then((loadedPanes) => {
-            logicRef.current.updatePanes(loadedPanes);
-        });
-    }, []);
 
     // Computed Units & Metrics
     const vUnit = isPortrait ? "vw" : "vh";
@@ -136,38 +130,16 @@ export const EnrouteDisplay: React.FC = () => {
         return { stopMetrics: metrics, lineHeight: lh };
     }, [tripInfo, isPortrait]);
 
+    const tripTitle = tripInfo ? `${tripInfo.route}${tripInfo.run ? ` #${tripInfo.run}` : ''} to ${fixStationName(tripInfo.finalStop)}` : "Loading...";
+
     return (
         <div className="w-screen h-screen overflow-hidden relative font-sans">
             {tripInfo ? (
                 <>
-                    {/* Header Bar */}
-                    <div
-                        className="fixed top-0 left-0 w-full text-white flex items-center justify-between z-50 border-b-2 border-slate-500"
-                        style={{
-                            height: `6${vUnit}`,
-                            paddingLeft: isPortrait ? "5vw" : "3vw",
-                            paddingRight: isPortrait ? "5vw" : "3vw",
-                            backgroundColor: "var(--catenary-darksky)",
-                        }}
-                    >
-                        <span
-                            className="font-bold truncate"
-                            style={{ maxWidth: `70${hUnit}`, fontSize: `3${vUnit}` }}
-                        >
-                            {tripInfo.route}
-                            {tripInfo.run && <span className="font-normal">#{tripInfo.run}</span>}
-                             {" to "}
-                            {fixStationName(tripInfo.finalStop)}
-                        </span>
-                        <span className="font-medium font-mono" style={{ fontSize: `3${vUnit}` }}>
-                            {currentTime.toLocaleTimeString([], {
-                                hour: "numeric",
-                                minute: "2-digit",
-                                second: "2-digit",
-                                hour12: !use24h,
-                            })}
-                        </span>
-                    </div>
+                    <DisplayHeader
+                        title={tripTitle}
+                        showGridControls={false}
+                    />
 
                     {/* Stop List */}
                     <div
@@ -277,7 +249,7 @@ export const EnrouteDisplay: React.FC = () => {
                                 const metric = stopMetrics[index];
                                 if (!metric) return null;
                                 return (
-                                    <React.Fragment key={index}>
+                                    <Fragment key={index}>
                                         {stop.isSpacer ? (
                                             [0.2, 0.5, 0.8].map((pos, i) => (
                                                 <div
@@ -308,7 +280,7 @@ export const EnrouteDisplay: React.FC = () => {
                                                 }}
                                             />
                                         )}
-                                    </React.Fragment>
+                                    </Fragment>
                                 );
                             })}
                         </>
@@ -389,4 +361,4 @@ export const EnrouteDisplay: React.FC = () => {
     );
 };
 
-
+export default EnrouteDisplay;

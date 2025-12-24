@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import type { PaneConfig } from "../types/PaneConfig";
-import type {AlertV2} from "components/types/birchtypes.ts";
-import {getAlertColor} from "components/data/transitUtils.ts";
+import type { PaneConfig, ConfigFieldDefinition } from "../types/PaneConfig";
+import type { AlertV2 } from "components/types/birchtypes.ts";
+import { getAlertColor } from "components/data/transitUtils.ts";
 
 interface AlertsPaneProps {
     config: PaneConfig;
@@ -46,46 +46,54 @@ const AlertsPane: React.FC<AlertsPaneProps> = ({
     };
 
     return (
-            <div className="grow overflow-auto p-2 scrollbar-hide">
-                {loading ? (
-                    <div className="flex items-center justify-center h-full">
-                        <span className="text-white/50 text-xs animate-pulse">Loading alerts...</span>
-                    </div>
-                ) : error ? (
-                    <div className="flex items-center justify-center h-full p-4 text-center">
-                        <span className="text-red-400 text-xs">{error}</span>
-                    </div>
-                ) : activeAlerts.length > 0 ? (
-                    <div className="flex flex-col gap-2">
-                        {activeAlerts.map((alert, index) => {
-                            const color = getAlertColor(alert);
+        <div className="grow overflow-auto scrollbar-hide" style={{ padding: "var(--compact-padding)" }}>
+            {loading ? (
+                <div className="flex items-center justify-center h-full">
+                    <span className="text-white/50 text-xs animate-pulse">Loading alerts...</span>
+                </div>
+            ) : error ? (
+                <div className="flex items-center justify-center h-full text-center" style={{ padding: "var(--compact-padding)" }}>
+                    <span className="text-red-400 text-xs">{error}</span>
+                </div>
+            ) : activeAlerts.length > 0 ? (
+                <div className="flex flex-col" style={{ gap: "var(--compact-gap)" }}>
+                    {activeAlerts.map((alert, index) => {
+                        const color = getAlertColor(alert);
 
-                            return (
-                                <div
-                                    key={index}
-                                    className={`p-2 rounded border ${color}`}
-                                >
-                                    <p className="text-sm font-medium">
-                                        {alert?.header_text?.translation[0]?.text || "Untitled Alert"}
-                                    </p>
+                        return (
+                            <div
+                                key={index}
+                                className={`rounded border ${color}`}
+                                style={{ padding: "var(--compact-padding)" }}
+                            >
+                                <p className="text-sm font-medium">
+                                    {alert?.header_text?.translation[0]?.text || null}
+                                </p>
 
-                                    <p className="text-xs opacity-80">
-                                        {alert?.description_text?.translation[0]?.text || "No description available."}
-                                    </p>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <div className="text-white/50 text-center text-sm py-4">No alerts found.</div>
-                )}
-            </div>
+                                <p className="text-xs opacity-80">
+                                    {alert?.description_text?.translation[0]?.text || null}
+                                </p>
+                            </div>
+                        );
+                    })}
+                </div>
+            ) : (
+                <div className="text-white/50 text-center text-sm py-4">No alerts found.</div>
+            )}
+        </div>
     );
 };
 
+const configSchema: ConfigFieldDefinition[] = [
+    // Alerts pane doesn't need configuration beyond what's provided via the Pane component
+    // but this is here as an example of how to add fields if needed
+];
+
 export const metadata = {
-  title: "Alerts Pane",
-  description: "Displays active alerts."
+    type: "alerts" as const,
+    title: "Alerts",
+    description: "Displays active service alerts.",
+    configSchema,
 };
 
 export default AlertsPane;
