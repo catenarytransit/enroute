@@ -1,10 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { PaneConfig } from "./types/PaneConfig";
+import type { PaneConfig, ConfigFieldDefinition } from "./types/PaneConfig";
+import { getAvailablePaneTypes, type PaneType, type DisplayMode } from "../utils/DynamicLoader";
 
-// Dynamically import all available pane types
-const availablePaneTypes: PaneConfig["type"][] = ['alerts', "departures", "info"]; // Replace with dynamic imports if possible
+// Type for available pane options loaded dynamically
+interface AvailablePaneOption {
+    type: PaneType;
+    displayMode?: DisplayMode;
+    title: string;
+    description: string;
+    configSchema?: ConfigFieldDefinition[];
+}
 
 interface PaneConfigModalProps {
     pane: PaneConfig;
@@ -17,6 +24,10 @@ export const PaneConfigModal: React.FC<PaneConfigModalProps> = ({
     onSave,
     onClose,
 }) => {
+    // Available pane types (loaded dynamically)
+    const [availablePaneTypes, setAvailablePaneTypes] = useState<AvailablePaneOption[]>([]);
+    const [dynamicFields, setDynamicFields] = useState<Record<string, any>>({});
+
     // Form State
     const [name, setName] = useState(pane.name || "");
     const [type, setType] = useState(pane.type || "departures");
@@ -47,6 +58,36 @@ export const PaneConfigModal: React.FC<PaneConfigModalProps> = ({
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<maplibregl.Map | null>(null);
     const markerRef = useRef<maplibregl.Marker | null>(null);
+
+    // Load available pane types on mount
+    useEffect(() => {
+        getAvailablePaneTypes().then(paneTypes => {
+            setAvailablePaneTypes(paneTypes);
+            // Initialize dynamic fields from current pane config
+            const fields: Record<string, any> = {};
+            const currentPaneType = paneTypes.find(p => p.type === type);
+            if (currentPaneType?.configSchema) {
+                currentPaneType.configSchema.forEach(field => {
+                    fields[field.key] = pane[field.key] ?? field.defaultValue ?? '';
+                });
+            }
+            setDynamicFields(fields);
+        });
+    }, []);
+
+    // Update dynamic fields when type changes
+    const handleTypeChange = (newType: string) => {
+        setType(newType);
+        const newPaneType = availablePaneTypes.find(p => p.type === newType);
+        const fields: Record<string, any> = {};
+        if (newPaneType?.configSchema) {
+            newPaneType.configSchema.forEach(field => {
+                fields[field.key] = field.defaultValue ?? '';
+            });
+        }
+        setDynamicFields(fields);
+    };
+
 
     // Initial Map Setup
     useEffect(() => {
@@ -241,6 +282,7 @@ export const PaneConfigModal: React.FC<PaneConfigModalProps> = ({
             simpleListGap,
             location,
             radius: customRadius,
+            ...dynamicFields, // Include all dynamic fields
         });
     };
 
@@ -281,195 +323,296 @@ export const PaneConfigModal: React.FC<PaneConfigModalProps> = ({
                         <div>
                             <label className="block text-xs font-bold text-slate-400 mb-1">Type</label>
                             <div className="grid grid-cols-2 gap-2">
-                                {availablePaneTypes.map((paneType) => (
+                                {/* Only show unique types, not each displayMode variant */}
+                                {[...new Map(availablePaneTypes.map(p => [p.type, p])).values()].map((paneOption) => (
                                     <button
-                                        key={paneType}
-                                        onClick={() => setType(paneType)}
-                                        className={`flex-1 py-2 rounded text-sm font-bold border transition-colors ${
-                                            type === paneType
+                                        key={paneOption.type}
+                                        onClick={() => handleTypeChange(paneOption.type)}
+                                        className={`flex-1 py-2 rounded text-sm font-bold border transition-colors ${type === paneOption.type
                                                 ? "bg-blue-600 border-blue-400 text-white"
                                                 : "bg-slate-900 border-slate-600 text-slate-400 hover:bg-slate-700"
-                                        }`}
+                                            }`}
+                                        title={paneOption.description}
                                     >
-                                        {paneType.charAt(0).toUpperCase() + paneType.slice(1)}
+                                        {/* Capitalize the type name */}
+                                        {paneOption.type.charAt(0).toUpperCase() + paneOption.type.slice(1)}
                                     </button>
                                 ))}
                             </div>
                         </div>
 
-                        {type === "departures" && (
-                            <div>
-                                <label className="block text-xs font-bold text-slate-400 mb-2">
-                                    Filter Modes
-                                </label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {[
-                                        { id: 3, label: "Bus" },
-                                        { id: 2, label: "Rail" },
-                                        { id: 1, label: "Subway" },
-                                        { id: 0, label: "Tram" },
-                                        { id: 4, label: "Ferry" },
-                                    ].map((mode) => (
-                                        <label
-                                            key={mode.id}
-                                            className={`flex items-center space-x-2 p-2 rounded border cursor-pointer transition-colors ${
-                                                allowedModes.includes(mode.id)
-                                                    ? "bg-blue-900/50 border-blue-500/50"
-                                                    : "bg-slate-900 border-slate-700 hover:bg-slate-700"
-                                            }`}
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                checked={allowedModes.includes(mode.id)}
-                                                onChange={() => toggleMode(mode.id)}
-                                                className="rounded border-slate-500 bg-slate-900 text-blue-500"
-                                            />
-                                            <span
-                                                className={`text-xs font-bold ${
-                                                    allowedModes.includes(mode.id)
-                                                        ? "text-white"
-                                                        : "text-slate-400"
-                                                }`}
-                                            >
-                                                {mode.label}
-                                            </span>
-                                        </label>
+                        {/* Dynamic Config Fields */}
+                        {availablePaneTypes.find(p => p.type === type)?.configSchema && (
+                            <div className="border-t border-slate-700 pt-4">
+                                <label className="block text-xs font-bold text-slate-400 mb-3">Pane Configuration</label>
+                                <div className="space-y-3">
+                                    {availablePaneTypes.find(p => p.type === type)?.configSchema?.map((field) => (
+                                        <div key={field.key}>
+                                            {field.type === 'text' && (
+                                                <>
+                                                    <label className="block text-xs font-bold text-slate-400 mb-1">{field.label}</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder={field.placeholder}
+                                                        value={dynamicFields[field.key] ?? ''}
+                                                        onChange={(e) => setDynamicFields({ ...dynamicFields, [field.key]: e.target.value })}
+                                                        className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
+                                                    />
+                                                    {field.description && <p className="text-[10px] text-slate-500 mt-1">{field.description}</p>}
+                                                </>
+                                            )}
+
+                                            {field.type === 'url' && (
+                                                <>
+                                                    <label className="block text-xs font-bold text-slate-400 mb-1">{field.label}</label>
+                                                    <input
+                                                        type="url"
+                                                        placeholder={field.placeholder}
+                                                        value={dynamicFields[field.key] ?? ''}
+                                                        onChange={(e) => setDynamicFields({ ...dynamicFields, [field.key]: e.target.value })}
+                                                        className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
+                                                    />
+                                                    {field.description && <p className="text-[10px] text-slate-500 mt-1">{field.description}</p>}
+                                                </>
+                                            )}
+
+                                            {field.type === 'textarea' && (
+                                                <>
+                                                    <label className="block text-xs font-bold text-slate-400 mb-1">{field.label}</label>
+                                                    <textarea
+                                                        placeholder={field.placeholder}
+                                                        value={dynamicFields[field.key] ?? ''}
+                                                        onChange={(e) => setDynamicFields({ ...dynamicFields, [field.key]: e.target.value })}
+                                                        className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:border-blue-500 outline-none resize-none"
+                                                        rows={3}
+                                                    />
+                                                    {field.description && <p className="text-[10px] text-slate-500 mt-1">{field.description}</p>}
+                                                </>
+                                            )}
+
+                                            {field.type === 'number' && (
+                                                <>
+                                                    <label className="block text-xs font-bold text-slate-400 mb-1">{field.label}</label>
+                                                    <input
+                                                        type="number"
+                                                        value={dynamicFields[field.key] ?? ''}
+                                                        onChange={(e) => setDynamicFields({ ...dynamicFields, [field.key]: parseFloat(e.target.value) })}
+                                                        className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
+                                                    />
+                                                    {field.description && <p className="text-[10px] text-slate-500 mt-1">{field.description}</p>}
+                                                </>
+                                            )}
+
+                                            {field.type === 'select' && (
+                                                <>
+                                                    <label className="block text-xs font-bold text-slate-400 mb-1">{field.label}</label>
+                                                    <select
+                                                        value={dynamicFields[field.key] ?? ''}
+                                                        onChange={(e) => setDynamicFields({ ...dynamicFields, [field.key]: e.target.value })}
+                                                        className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
+                                                    >
+                                                        <option value="">Select {field.label}</option>
+                                                        {field.options?.map((opt) => (
+                                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                                        ))}
+                                                    </select>
+                                                    {field.description && <p className="text-[10px] text-slate-500 mt-1">{field.description}</p>}
+                                                </>
+                                            )}
+
+                                            {field.type === 'checkbox' && (
+                                                <label className="flex items-center space-x-2 cursor-pointer p-2 rounded border border-slate-700 bg-slate-900/50 hover:bg-slate-800">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={dynamicFields[field.key] ?? false}
+                                                        onChange={(e) => setDynamicFields({ ...dynamicFields, [field.key]: e.target.checked })}
+                                                        className="rounded border-slate-500 bg-slate-900 text-blue-500"
+                                                    />
+                                                    <div>
+                                                        <span className="text-sm font-bold text-white">{field.label}</span>
+                                                        {field.description && <p className="text-[10px] text-slate-400 mt-0.5">{field.description}</p>}
+                                                    </div>
+                                                </label>
+                                            )}
+                                        </div>
                                     ))}
                                 </div>
                             </div>
                         )}
 
-                        <div>
-                            <label className="block text-xs font-bold text-slate-400 mb-2" htmlFor="displayMode">
-                                Display Mode
-                            </label>
-                            <select
-                                id="displayMode"
-                                value={displayMode}
-                                onChange={(e) =>
-                                    setDisplayMode(e.target.value as "simple" | "train_departure" | "grouped_by_route")
-                                }
-                                className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white outline-none focus:border-blue-500 mb-2"
-                            >
-                                <option value="simple">Simple (CTA)</option>
-                                <option value="train_departure">Train Departure</option>
-                                <option value="grouped_by_route">Grouped by Route</option>
-                            </select>
-
-                            {displayMode === "grouped_by_route" && (
-                                <>
-                                    <label className="block text-xs font-bold text-slate-400 mb-2 mt-2" htmlFor="groupingTheme">
-                                        Grouping Theme
-                                    </label>
-                                    <select
-                                        id="groupingTheme"
-                                        value={groupingTheme}
-                                        onChange={(e) => setGroupingTheme(e.target.value as "default" | "ratp")}
-                                        className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white outline-none focus:border-blue-500 mb-2"
-                                    >
-                                        <option value="default">Standard</option>
-                                        <option value="ratp">RATP Style</option>
-                                    </select>
-                                </>
-                            )}
-
-                            {displayMode === "simple" && (
-                                <div className="border-t border-slate-700 pt-3 mt-3">
+                        {type === "departures" && (
+                            <>
+                                <div>
                                     <label className="block text-xs font-bold text-slate-400 mb-2">
-                                        Spacing Configuration
+                                        Filter Modes
                                     </label>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <div>
-                                            <label className="block text-[10px] text-slate-500 mb-1">
-                                                H. Padding
-                                            </label>
-                                            <select
-                                                value={simplePaddingX}
-                                                onChange={(e) => setSimplePaddingX(e.target.value)}
-                                                className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-xs outline-none focus:border-blue-500"
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {[
+                                            { id: 3, label: "Bus" },
+                                            { id: 2, label: "Rail" },
+                                            { id: 1, label: "Subway" },
+                                            { id: 0, label: "Tram" },
+                                            { id: 4, label: "Ferry" },
+                                        ].map((mode) => (
+                                            <label
+                                                key={mode.id}
+                                                className={`flex items-center space-x-2 p-2 rounded border cursor-pointer transition-colors ${allowedModes.includes(mode.id)
+                                                    ? "bg-blue-900/50 border-blue-500/50"
+                                                    : "bg-slate-900 border-slate-700 hover:bg-slate-700"
+                                                    }`}
                                             >
-                                                {["0", "0.5", "1", "1.5", "2", "3", "4", "5", "6"].map((val) => (
-                                                    <option key={val} value={val}>
-                                                        {val}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] text-slate-500 mb-1">
-                                                V. Padding
+                                                <input
+                                                    type="checkbox"
+                                                    checked={allowedModes.includes(mode.id)}
+                                                    onChange={() => toggleMode(mode.id)}
+                                                    className="rounded border-slate-500 bg-slate-900 text-blue-500"
+                                                />
+                                                <span
+                                                    className={`text-xs font-bold ${allowedModes.includes(mode.id)
+                                                        ? "text-white"
+                                                        : "text-slate-400"
+                                                        }`}
+                                                >
+                                                    {mode.label}
+                                                </span>
                                             </label>
-                                            <select
-                                                value={simplePaddingY}
-                                                onChange={(e) => setSimplePaddingY(e.target.value)}
-                                                className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-xs outline-none focus:border-blue-500"
-                                            >
-                                                {["0", "0.5", "1", "1.5", "2", "3", "4", "5", "6"].map((val) => (
-                                                    <option key={val} value={val}>
-                                                        {val}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] text-slate-500 mb-1">
-                                                Item Gap
-                                            </label>
-                                            <select
-                                                value={simpleListGap}
-                                                onChange={(e) => setSimpleListGap(e.target.value)}
-                                                className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-xs outline-none focus:border-blue-500"
-                                            >
-                                                {["0", "0.5", "1", "1.5", "2", "3", "4"].map((val) => (
-                                                    <option key={val} value={val}>
-                                                        {val}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
+                                        ))}
                                     </div>
                                 </div>
-                            )}
 
-                            <label className="flex items-center space-x-2 cursor-pointer mt-4">
-                                <input
-                                    type="checkbox"
-                                    checked={useRouteColor}
-                                    onChange={(e) => setUseRouteColor(e.target.checked)}
-                                    className="rounded border-slate-500 bg-slate-900 text-blue-500"
-                                />
-                                <span className="text-xs font-bold text-slate-300">
-                                    Use Route Colour as Background
-                                </span>
-                            </label>
+                                <div className="border-t border-slate-700 pt-4">
+                                    <label className="block text-xs font-bold text-slate-400 mb-2" htmlFor="displayMode">
+                                        Display Mode
+                                    </label>
+                                    <select
+                                        id="displayMode"
+                                        value={displayMode}
+                                        onChange={(e) =>
+                                            setDisplayMode(e.target.value as "simple" | "train_departure" | "grouped_by_route")
+                                        }
+                                        className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white outline-none focus:border-blue-500 mb-2"
+                                    >
+                                        <option value="simple">Simple (CTA)</option>
+                                        <option value="train_departure">Train Departure</option>
+                                        <option value="grouped_by_route">Grouped by Route</option>
+                                    </select>
 
-                            {displayMode === "train_departure" && (
-                                <>
-                                    <label className="flex items-center space-x-2 cursor-pointer mt-2">
+                                    {displayMode === "grouped_by_route" && (
+                                        <>
+                                            <label className="block text-xs font-bold text-slate-400 mb-2 mt-2" htmlFor="groupingTheme">
+                                                Grouping Theme
+                                            </label>
+                                            <select
+                                                id="groupingTheme"
+                                                value={groupingTheme}
+                                                onChange={(e) => setGroupingTheme(e.target.value as "default" | "ratp")}
+                                                className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white outline-none focus:border-blue-500 mb-2"
+                                            >
+                                                <option value="default">Standard</option>
+                                                <option value="ratp">RATP Style</option>
+                                            </select>
+                                        </>
+                                    )}
+
+                                    {displayMode === "simple" && (
+                                        <div className="border-t border-slate-700 pt-3 mt-3">
+                                            <label className="block text-xs font-bold text-slate-400 mb-2">
+                                                Spacing Configuration
+                                            </label>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <div>
+                                                    <label className="block text-[10px] text-slate-500 mb-1">
+                                                        H. Padding
+                                                    </label>
+                                                    <select
+                                                        value={simplePaddingX}
+                                                        onChange={(e) => setSimplePaddingX(e.target.value)}
+                                                        className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-xs outline-none focus:border-blue-500"
+                                                    >
+                                                        {["0", "0.5", "1", "1.5", "2", "3", "4", "5", "6"].map((val) => (
+                                                            <option key={val} value={val}>
+                                                                {val}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] text-slate-500 mb-1">
+                                                        V. Padding
+                                                    </label>
+                                                    <select
+                                                        value={simplePaddingY}
+                                                        onChange={(e) => setSimplePaddingY(e.target.value)}
+                                                        className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-xs outline-none focus:border-blue-500"
+                                                    >
+                                                        {["0", "0.5", "1", "1.5", "2", "3", "4", "5", "6"].map((val) => (
+                                                            <option key={val} value={val}>
+                                                                {val}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] text-slate-500 mb-1">
+                                                        Item Gap
+                                                    </label>
+                                                    <select
+                                                        value={simpleListGap}
+                                                        onChange={(e) => setSimpleListGap(e.target.value)}
+                                                        className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-xs outline-none focus:border-blue-500"
+                                                    >
+                                                        {["0", "0.5", "1", "1.5", "2", "3", "4"].map((val) => (
+                                                            <option key={val} value={val}>
+                                                                {val}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <label className="flex items-center space-x-2 cursor-pointer mt-4">
                                         <input
                                             type="checkbox"
-                                            checked={showTripShortName}
-                                            onChange={(e) => setShowTripShortName(e.target.checked)}
+                                            checked={useRouteColor}
+                                            onChange={(e) => setUseRouteColor(e.target.checked)}
                                             className="rounded border-slate-500 bg-slate-900 text-blue-500"
                                         />
                                         <span className="text-xs font-bold text-slate-300">
-                                            Show Trip Short Name
+                                            Use Route Colour as Background
                                         </span>
                                     </label>
-                                    <label className="flex items-center space-x-2 cursor-pointer mt-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={showRouteShortName}
-                                            onChange={(e) => setShowRouteShortName(e.target.checked)}
-                                            className="rounded border-slate-500 bg-slate-900 text-blue-500"
-                                        />
-                                        <span className="text-xs font-bold text-slate-300">
-                                            Show Route Short Name
-                                        </span>
-                                    </label>
-                                </>
-                            )}
-                        </div>
+
+                                    {displayMode === "train_departure" && (
+                                        <>
+                                            <label className="flex items-center space-x-2 cursor-pointer mt-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={showTripShortName}
+                                                    onChange={(e) => setShowTripShortName(e.target.checked)}
+                                                    className="rounded border-slate-500 bg-slate-900 text-blue-500"
+                                                />
+                                                <span className="text-xs font-bold text-slate-300">
+                                                    Show Trip Short Name
+                                                </span>
+                                            </label>
+                                            <label className="flex items-center space-x-2 cursor-pointer mt-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={showRouteShortName}
+                                                    onChange={(e) => setShowRouteShortName(e.target.checked)}
+                                                    className="rounded border-slate-500 bg-slate-900 text-blue-500"
+                                                />
+                                                <span className="text-xs font-bold text-slate-300">
+                                                    Show Route Short Name
+                                                </span>
+                                            </label>
+                                        </>
+                                    )}
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {/* Right Location Column */}

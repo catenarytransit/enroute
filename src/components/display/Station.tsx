@@ -1,13 +1,19 @@
-import React, {useEffect, useState, useRef} from "react";
+import React, {useCallback, useEffect, useState, useRef} from "react";
 import type { JSX } from "react";
 import { fixStationName } from "../data/agencyspecific";
 import { fetchSwiftlyArrivals } from "../data/stationdemo";
 import type { Arrival } from "../types/StationInformation";
-import { StationAnnouncer } from "../../utils/StationAnnouncer";
-import { loadDynamicPanes } from "../../utils/DynamicLoader";
+import { StationAnnouncer } from "utils/StationAnnouncer.ts";
+import { loadDynamicPanes } from "utils/DynamicLoader.ts";
 import type { PaneConfig } from "../types/PaneConfig";
+import type { DeparturesAtStopResponse } from "../types/birchtypes";
+import type { NearbyDeparturesFromCoordsV2Response } from "../types/birchtypes";
+import Pane from "../Pane";
+import { DisplayHeader } from "../common/DisplayHeader";
+import { usePaneEditor } from "../context/PaneEditorContext";
+import { PaneEditorSetup } from "../PaneEditorSetup";
 
-export default function Station(): JSX.Element {
+function StationContent(): JSX.Element {
     const getSetting = (key: string, defaultValue = "") => {
         if (typeof window === "undefined") return defaultValue;
         const params = new URLSearchParams(window.location.search);
@@ -23,7 +29,9 @@ export default function Station(): JSX.Element {
     const [tick, setTick] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [announcementTextChunk, setAnnouncementTextChunk] = useState<string | null>(null);
-    const [currentTime, setCurrentTime] = useState(new Date());
+    const [stopCoords, setStopCoords] = useState<{ lat: number; lon: number } | null>(null);
+    const [nearbyDepartures, setNearbyDepartures] = useState<NearbyDeparturesFromCoordsV2Response | null>(null);
+    const [stopDepartures, setStopDepartures] = useState<DeparturesAtStopResponse | null>(null);
 
     const [innerWidth, setInnerWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 0);
     const [innerHeight, setInnerHeight] = useState(typeof window !== "undefined" ? window.innerHeight : 0);
@@ -31,6 +39,22 @@ export default function Station(): JSX.Element {
 
     const vUnit = isPortrait ? "vw" : "vh";
     const hUnit = isPortrait ? "vh" : "vw";
+
+    const { isEditing, setIsEditing, editingPane, setEditingPane, closeEditingPane, setOnPaneSaved } = usePaneEditor();
+
+    const defaultDeparturesConfig: PaneConfig = {
+        id: "station-departures",
+        type: "departures",
+        displayMode: "simple",
+    };
+    const defaultImageConfig: PaneConfig = {
+        id: "station-image",
+        type: "image",
+        imageUrl: "/alert/pride.png",
+    };
+
+    const [departuresConfig, setDeparturesConfig] = useState<PaneConfig>(defaultDeparturesConfig);
+    const [imageConfig, setImageConfig] = useState<PaneConfig>(defaultImageConfig);
 
     const announcerRef = useRef<any>(null);
 
@@ -46,10 +70,6 @@ export default function Station(): JSX.Element {
              setInnerHeight(window.innerHeight);
         };
         window.addEventListener("resize", handleResize);
-
-        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-        const tickTimer = setInterval(() => setTick(new Date().getSeconds() % 2 === 0), 5000);
-
         let mounted = true;
         const params = new URLSearchParams(window.location.search);
         const selectedRegion = params.get("chateau");
@@ -74,8 +94,31 @@ export default function Station(): JSX.Element {
              }
         };
 
+        const fetchStopCoords = async () => {
+             if (!selectedRegion || !selectedStop) return;
+             try {
+                 const now = Math.floor(Date.now() / 1000);
+                 const oneHourLater = now + 3600 * 2;
+                 const url = `https://birchdeparturesfromstop.catenarymaps.org/departures_at_stop?stop_id=${selectedStop}&chateau_id=${selectedRegion}&greater_than_time=${now}&less_than_time=${oneHourLater}&include_shapes=false`;
+
+                 const response = await fetch(url);
+                 if (!response.ok) throw new Error(`Failed to fetch stop coords: ${response.status}`);
+
+                 const data: DeparturesAtStopResponse = await response.json();
+                 if (mounted && data.primary) {
+                     setStopCoords({ lat: data.primary.stop_lat, lon: data.primary.stop_lon });
+                     setStopDepartures(data);
+                 }
+             } catch (err: any) {
+                 console.error("Error fetching stop coordinates:", err);
+             }
+        };
+
         const dataInterval = setInterval(fetchData, 4000);
         fetchData(); // Initial
+
+        // Fetch stop coordinates at once
+        fetchStopCoords();
 
         const announceInterval = setInterval(() => {
              const params = new URLSearchParams(window.location.search);
@@ -86,98 +129,125 @@ export default function Station(): JSX.Element {
         return () => {
             mounted = false;
             window.removeEventListener("resize", handleResize);
-            clearInterval(timer);
-            clearInterval(tickTimer);
             clearInterval(dataInterval);
             clearInterval(announceInterval);
         };
     }, [use24h]);
 
-    useEffect(() => {
-        loadDynamicPanes().then((loadedPanes) => {
-            const paneConfigs: PaneConfig[] = loadedPanes.map((pane) => ({
-                id: pane.metadata.title,
-                type: pane.metadata.type as PaneConfig['type'],
-                description: pane.metadata.description,
-            }));
-            console.log("Loaded Panes:", paneConfigs);
-        });
+
+
+    // Set up global pane save handler for this display
+    const handlePaneSave = useCallback((paneId: string, config: Partial<PaneConfig>) => {
+        if (paneId === 'departures') {
+            setDeparturesConfig(prev => ({ ...prev, ...config }));
+        } else if (paneId === 'image') {
+            setImageConfig(prev => ({ ...prev, ...config }));
+        }
     }, []);
+
+    useEffect(() => {
+        setOnPaneSaved(() => handlePaneSave);
+        return () => setOnPaneSaved(null);
+    }, [handlePaneSave]);
+
+    const resetLayout = () => {
+        setDeparturesConfig(defaultDeparturesConfig);
+        setImageConfig(defaultImageConfig);
+    };
+
+    useEffect(() => {
+         loadDynamicPanes().then((loadedPanes) => {
+             const paneConfigs: PaneConfig[] = loadedPanes.map((pane) => ({
+                 id: pane.metadata.title,
+                 type: pane.metadata.type as PaneConfig['type'],
+                 description: pane.metadata.description,
+             }));
+             console.log("Loaded Panes:", paneConfigs);
+         });
+     }, []);
+
+
 
     return (
         <div className="w-screen h-screen overflow-hidden relative font-sans" style={{ backgroundColor: "var(--catenary-background)" }}>
-            {arrivals.length >= 1 ? (
-                <>
-                    <div
-                        className="fixed top-0 left-0 w-full text-white flex items-center justify-between z-50 border-b-2 border-slate-500"
-                        style={{
-                            height: `6${vUnit}`,
-                            paddingLeft: isPortrait ? "5vw" : "3vw",
-                            paddingRight: isPortrait ? "5vw" : "3vw",
-                            backgroundColor: "var(--catenary-darksky)",
-                        }}
-                    >
-                        <span className="font-bold truncate" style={{ fontSize: `3${vUnit}`, maxWidth: `65${hUnit}` }}>
-                            {fixStationName(stopName)}
-                        </span>
-                        <span className="font-medium font-mono" style={{ fontSize: `3${vUnit}` }}>
-                            {currentTime.toLocaleTimeString([], {
-                                hour: "numeric",
-                                minute: "2-digit",
-                                second: "2-digit",
-                                hour12: !use24h,
-                            })}
-                        </span>
-                    </div>
+            <DisplayHeader
+                 title={fixStationName(stopName)}
+                 isEditing={isEditing}
+                 onEditToggle={setIsEditing}
+                 onReset={resetLayout}
+                 showGridControls={false}
+             />
 
-                    <div className="fixed top-0 left-0 w-screen h-screen bg-cover bg-center opacity-30 pointer-events-none -z-10" style={{ backgroundImage: "url(/art/default.png)" }} />
+            <div className="fixed top-0 left-0 w-screen h-screen bg-cover bg-center opacity-30 pointer-events-none -z-10" style={{ backgroundImage: "url(/art/default.png)" }} />
 
-                    {arrivals.slice(0, 8).map((arrival) => (
-                        <div
-                            key={arrival.key}
-                            onClick={() => {
-                                const params = new URLSearchParams(window.location.search);
-                                const chateau = params.get("chateau");
-                                window.location.href = `/?mode=enroute&chateau=${chateau}&trip=${arrival.key}`;
-                            }}
-                            className="rounded-lg leading-none flex items-center justify-between shadow-lg cursor-pointer hover:brightness-110 transition-all duration-300"
-                            style={{
-                                backgroundColor: arrival.color,
-                                color: arrival.text,
-                                height: isPortrait ? `14${vUnit}` : `9.2${vUnit}`,
-                                paddingLeft: `1.6${hUnit}`,
-                                paddingRight: `0.8${hUnit}`,
-                            }}
-                            role="button"
-                            tabIndex={0}
-                        >
-                            <div className="overflow-hidden">
-                                <div className="truncate" style={{ fontSize: `2.2${vUnit}`, paddingBottom: `0.2${vUnit}` }}>
-                                    {arrival.route}
-                                    {arrival.run !== "" && arrival.run} to:
-                                </div>
-                                <div className="font-bold whitespace-nowrap truncate" style={{ fontSize: `3.5${vUnit}`, width: isPortrait ? `55${hUnit}` : `30${hUnit}` }}>
-                                    {fixStationName(arrival.headsign)}
-                                </div>
-                            </div>
-
-                            <span className="text-right font-bold flex flex-row items-center justify-end" style={{ minWidth: `15${hUnit}`, gap: `1.5${hUnit}` }}>
-                                <span style={{ fontSize: `5${vUnit}`, lineHeight: 1 }}>
-                                    {arrival.min <= 0 ? <span className="animate-pulse">DUE</span> : (
-                                        <>
-                                            {arrival.min}
-                                            <span className="font-light" style={{ fontSize: `2.4${vUnit}` }}>min</span>
-                                        </>
-                                    )}
-                                </span>
-                            </span>
-                        </div>
-                    ))}
-
-                </>
+            {/* Loading state */}
+            {!stopCoords ? (
+                <div className="fixed top-0 left-0 w-screen h-screen flex items-center justify-center" style={{ paddingTop: "6vh" }}>
+                    <span className="text-white/50 animate-pulse">Loading station data...</span>
+                </div>
             ) : (
-                <div className="w-screen h-screen flex items-center justify-center">Loading...</div>
+                <>
+                    {/* Departures Pane - Left half */}
+                     <div className="fixed left-0" style={{
+                         top: "6vh",
+                         height: "calc(100vh - 6vh)",
+                         width: isPortrait ? "100%" : "50%",
+                         padding: "10px",
+                         zIndex: 10,
+                     }}>
+                         <Pane
+                             config={{
+                                 ...departuresConfig,
+                                 location: stopCoords,
+                                 radius: 500, // Only show departures at this specific stop
+                             }}
+                             theme="default"
+                             use24h={use24h}
+                             deviceLocation={stopCoords}
+                             stopData={stopDepartures}
+                             isEditing={isEditing}
+                             onEdit={() => setEditingPane({
+                                 paneId: 'departures',
+                                 config: { ...departuresConfig, location: stopCoords, radius: 500 },
+                                 displayName: 'Departures'
+                             })}
+                         />
+                     </div>
+
+                    {/* Image Pane - Right half (landscape only) */}
+                    {!isPortrait && (
+                        <div className="fixed right-0" style={{
+                            top: "6vh",
+                            height: "calc(100vh - 6vh)",
+                            width: "50%",
+                            padding: "10px",
+                            zIndex: 10,
+                        }}>
+                            <Pane
+                                config={imageConfig}
+                                theme="default"
+                                use24h={use24h}
+                                isEditing={isEditing}
+                                onEdit={() => setEditingPane({
+                                    paneId: 'image',
+                                    config: imageConfig,
+                                    displayName: 'Image'
+                                })}
+                            />
+                        </div>
+                    )}
+                </>
             )}
+
+
         </div>
+    );
+}
+
+export default function Station(): JSX.Element {
+    return (
+        <PaneEditorSetup>
+            <StationContent />
+        </PaneEditorSetup>
     );
 }

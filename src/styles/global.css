@@ -46,6 +46,13 @@
     --catenary-danger: #EF3841;
     --catenary-text: #ffffff;
     --font-main: var(--font-barlow);
+    --compact-padding: 0.5rem;
+    --compact-gap: 0.25rem;
+}
+
+:root.compact-mode {
+    --compact-padding: 0.25rem;
+    --compact-gap: 0.125rem;
 }
 
 html {

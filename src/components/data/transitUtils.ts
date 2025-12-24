@@ -1,4 +1,5 @@
-import type {AlertV2, NearbyDeparturesFromCoordsV2Response, NearbyDepartureV2} from "../types/birchtypes";
+import type { AlertV2, NearbyDeparturesFromCoordsV2Response, NearbyDepartureV2, DeparturesAtStopResponse } from "../types/birchtypes";
+import type { DisplayItem } from "../types/DisplayItem";
 import {
     fixHeadsignText,
     fixRouteColor,
@@ -6,6 +7,100 @@ import {
     fixRouteTextColor,
     fixStationName,
 } from "./agencyspecific";
+
+/**
+ * Convert DeparturesAtStopResponse to NearbyDeparturesFromCoordsV2Response format
+ */
+export function convertStopResponseToNearbyFormat(
+    data: DeparturesAtStopResponse
+): NearbyDeparturesFromCoordsV2Response {
+    const departures: NearbyDepartureV2[] = [];
+    const stopMap: Record<string, Record<string, any>> = {};
+
+    // Build stop map
+    stopMap[data.primary.chateau] = {
+        [data.primary.stop_id]: {
+            gtfs_id: data.primary.stop_id,
+            name: data.primary.stop_name,
+            lat: data.primary.stop_lat,
+            lon: data.primary.stop_lon,
+            timezone: data.primary.timezone,
+            url: null,
+            platform_code: data.primary.platform_code,
+        }
+    };
+
+    // Group events by route and direction
+    const groupedByRoute: Record<string, Record<string, any>> = {};
+
+    data.events.forEach((event) => {
+        const routeKey = `${event.chateau}-${event.route_id}`;
+        if (!groupedByRoute[routeKey]) {
+            const route = data.routes[event.chateau]?.[event.route_id];
+            if (!route) return;
+
+            groupedByRoute[routeKey] = {
+                chateau_id: event.chateau,
+                route_id: event.route_id,
+                color: route.color,
+                text_color: route.text_color,
+                short_name: route.short_name,
+                long_name: route.long_name,
+                route_type: route.route_type,
+                directions: {},
+                closest_distance: 0,
+            };
+        }
+
+        const departure = groupedByRoute[routeKey];
+        const dirKey = "0"; // Default direction key
+
+        if (!departure.directions[dirKey]) {
+            departure.directions[dirKey] = {};
+        }
+
+        const groupKey = "None";
+        if (!departure.directions[dirKey][groupKey]) {
+            departure.directions[dirKey][groupKey] = {
+                headsign: event.headsign,
+                direction_id: dirKey,
+                trips: [],
+            };
+        }
+
+        departure.directions[dirKey][groupKey].trips.push({
+            trip_id: event.trip_id,
+            gtfs_frequency_start_time: null,
+            gtfs_schedule_start_day: event.service_date,
+            is_frequency: false,
+            departure_schedule: event.scheduled_departure,
+            departure_realtime: event.realtime_departure,
+            arrival_schedule: event.scheduled_arrival,
+            arrival_realtime: event.realtime_arrival,
+            stop_id: event.stop_id,
+            trip_short_name: event.trip_short_name,
+            tz: data.primary.timezone,
+            is_interpolated: false,
+            cancelled: event.trip_cancelled,
+            deleted: event.trip_deleted,
+            platform: event.platform_code,
+            level_id: event.level_id,
+        });
+    });
+
+    Object.values(groupedByRoute).forEach((dep) => {
+        departures.push(dep);
+    });
+
+    return {
+        number_of_stops_searched_through: 1,
+        bus_limited_metres: 0,
+        rail_and_other_limited_metres: 0,
+        departures,
+        stop: stopMap,
+        alerts: data.alerts || {},
+    };
+}
 
 export function flattenDepartures(
     data: NearbyDeparturesFromCoordsV2Response | null,

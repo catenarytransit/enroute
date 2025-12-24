@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 interface ConfigModalProps {
@@ -10,6 +10,8 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ onClose }) => {
 	const [use24HourTime, setUse24HourTime] = useState(true);
 	const [fontPreference, setFontPreference] = useState("barlow");
 	const [clickableTrips, setClickableTrips] = useState(false);
+	const [autoRefresh, setAutoRefresh] = useState(true);
+	const [compactMode, setCompactMode] = useState(false);
 
 	useEffect(() => {
 		const getSetting = (key: string) => {
@@ -21,10 +23,14 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ onClose }) => {
 		const urlTheme = getSetting("theme");
 		const url24h = getSetting("24h") !== "false";
 		const urlClickable = getSetting("clickable_trips") === "true";
+		const urlAutoRefresh = getSetting("auto_refresh") !== "false";
+		const urlCompactMode = getSetting("compact_mode") === "true";
 
 		if (urlTheme) setThemePreference(urlTheme);
 		setUse24HourTime(url24h);
 		setClickableTrips(urlClickable);
+		setAutoRefresh(urlAutoRefresh);
+		setCompactMode(urlCompactMode);
 
 		const storedFont = localStorage.getItem("enroute_font");
 		if (storedFont) setFontPreference(storedFont);
@@ -36,15 +42,35 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ onClose }) => {
 		localStorage.setItem(`${prefix}24h`, use24HourTime.toString());
 		localStorage.setItem(`${prefix}font`, fontPreference);
 		localStorage.setItem(`${prefix}clickable_trips`, clickableTrips.toString());
+		localStorage.setItem(`${prefix}auto_refresh`, autoRefresh.toString());
+		localStorage.setItem(`${prefix}compact_mode`, compactMode.toString());
 
-		// Reload to apply
+		// Apply font immediately
+		const fontMap: Record<string, string> = {
+			barlow: "var(--font-barlow)",
+			nimbus: "var(--font-nimbus)",
+			noto: "var(--font-noto)",
+			fira: "var(--font-fira)",
+		};
+		document.documentElement.style.setProperty("--font-main", fontMap[fontPreference] || fontMap.barlow);
+
+		// Apply compact mode immediately
+		if (compactMode) {
+			document.documentElement.classList.add("compact-mode");
+		} else {
+			document.documentElement.classList.remove("compact-mode");
+		}
+
+		// Reload to apply theme
 		window.location.reload();
 	};
 
+	const navigate = (path: string) => {
+		window.location.href = path;
+	};
+
 	const goHome = () => {
-		const params = new URLSearchParams(window.location.search);
-		["mode", "trip", "chateau", "stop"].forEach((p) => params.delete(p));
-		window.location.search = params.toString();
+		navigate("/");
 	};
 
 	return (
@@ -56,30 +82,60 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ onClose }) => {
 			aria-labelledby="config-modal-title"
 		>
 			<div
-				className="w-full max-w-2xl rounded-lg overflow-hidden border-2 border-slate-700 shadow-2xl cursor-default"
+				className="w-full max-w-4xl rounded-lg overflow-hidden border-2 border-slate-700 shadow-2xl cursor-default"
 				style={{ backgroundColor: "var(--catenary-darksky)" }}
 				onClick={(e) => e.stopPropagation()}
 			>
 				{/* Modal Header */}
 				<div className="flex justify-between items-start px-8 pt-8">
-					<div className="flex flex-col">
+					<div className="flex flex-col w-full">
 						<h2 id="config-modal-title" className="text-3xl font-bold leading-none text-white">Configuration</h2>
-						<div className="flex items-center gap-6 mt-3">
+						<div className="flex items-center gap-3 mt-4 flex-wrap">
 							<span
 								className="text-[10px] font-bold opacity-90"
 								style={{ color: "var(--catenary-seashore)" }}
 							>
-								System Preferences
+								Navigation
 							</span>
 							<button
 								onClick={goHome}
-								className="text-[10px] font-black px-4 py-1.5 rounded-md transition-all active:scale-95 shadow-md border border-blue-400/30"
+								className="text-[10px] font-black px-3 py-1 rounded-md transition-all active:scale-95 shadow-md border border-slate-500/30 hover:border-slate-400/50"
 								style={{
 									backgroundColor: "var(--catenary-seashore)",
 									color: "var(--catenary-darksky)",
 								}}
 							>
-								Go Home
+								Home
+							</button>
+							<button
+								onClick={() => navigate("/station")}
+								className="text-[10px] font-black px-3 py-1 rounded-md transition-all active:scale-95 shadow-md border border-slate-500/30 hover:border-slate-400/50"
+								style={{
+									backgroundColor: "var(--catenary-seashore)",
+									color: "var(--catenary-darksky)",
+								}}
+							>
+								Station View
+							</button>
+							<button
+								onClick={() => navigate("/enroute")}
+								className="text-[10px] font-black px-3 py-1 rounded-md transition-all active:scale-95 shadow-md border border-slate-500/30 hover:border-slate-400/50"
+								style={{
+									backgroundColor: "var(--catenary-seashore)",
+									color: "var(--catenary-darksky)",
+								}}
+							>
+								Enroute
+							</button>
+							<button
+								onClick={() => navigate("/jr-enroute")}
+								className="text-[10px] font-black px-3 py-1 rounded-md transition-all active:scale-95 shadow-md border border-slate-500/30 hover:border-slate-400/50"
+								style={{
+									backgroundColor: "var(--catenary-seashore)",
+									color: "var(--catenary-darksky)",
+								}}
+							>
+								JR Enroute
 							</button>
 						</div>
 					</div>
@@ -121,6 +177,32 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ onClose }) => {
 							<div className="text-white">
 								<span className="block text-sm font-bold">24-Hour Time</span>
 								<span className="block text-[10px] opacity-60">Display hours 00-23 without AM/PM</span>
+							</div>
+						</label>
+
+						<label className="flex items-center space-x-4 p-4 rounded-lg border border-slate-500 bg-slate-900/40 hover:bg-slate-700/40 cursor-pointer transition-colors">
+							<input
+								type="checkbox"
+								checked={autoRefresh}
+								onChange={(e) => setAutoRefresh(e.target.checked)}
+								className="form-checkbox h-6 w-6 text-green-500 rounded border-slate-500 bg-slate-900"
+							/>
+							<div className="text-white">
+								<span className="block text-sm font-bold">Auto-Refresh Data</span>
+								<span className="block text-[10px] opacity-60">Automatically refresh departures and location data</span>
+							</div>
+						</label>
+
+						<label className="flex items-center space-x-4 p-4 rounded-lg border border-slate-500 bg-slate-900/40 hover:bg-slate-700/40 cursor-pointer transition-colors">
+							<input
+								type="checkbox"
+								checked={compactMode}
+								onChange={(e) => setCompactMode(e.target.checked)}
+								className="form-checkbox h-6 w-6 text-purple-500 rounded border-slate-500 bg-slate-900"
+							/>
+							<div className="text-white">
+								<span className="block text-sm font-bold">Compact Mode</span>
+								<span className="block text-[10px] opacity-60">Reduce padding and spacing for smaller displays</span>
 							</div>
 						</label>
 
@@ -271,12 +353,14 @@ export default function ConfigModalClient() {
 		return () => document.removeEventListener("keydown", handleTab);
 	}, [open]);
 
-	// Server-safe placeholder: Astro will SSR this component; returning `null` on server causes the SSR error.
-	// Render a harmless placeholder during SSR and only use portal when `document` is present (client).
-	if (typeof document === "undefined") {
-		// Render a non-empty placeholder so SSR produces valid HTML. The real modal will mount on the client.
-		return <div data-config-modal-placeholder />;
+	// Render placeholder during SSR and hydrate on client
+	// This div is always rendered to avoid hydration mismatches
+	const placeholder = <div data-config-modal-root />;
+
+	// On client, conditionally render modal in portal
+	if (typeof document !== "undefined" && open) {
+		return createPortal(<ConfigModal onClose={closeModal} />, document.body);
 	}
 
-	return open ? createPortal(<ConfigModal onClose={closeModal} />, document.body) : <div data-config-modal-hidden />;
+	return placeholder;
 }

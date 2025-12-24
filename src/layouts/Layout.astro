@@ -42,6 +42,18 @@ import ConfigModalClient from "../components/config/modal";
 					"--font-main",
 					"var(--font-fira)",
 				);
+			} else {
+				// Default to Barlow
+				document.documentElement.style.setProperty(
+					"--font-main",
+					"var(--font-barlow)",
+				);
+			}
+
+			// Apply compact mode
+			const compactMode = localStorage.getItem("enroute_compact_mode") === "true";
+			if (compactMode) {
+				document.documentElement.classList.add("compact-mode");
 			}
 
 			// Apply theme preference

@@ -12,8 +12,10 @@ interface Props {
 }
 
 export const metadata = {
-  title: "Grouped By Route Pane",
-  description: "Displays data grouped by route."
+    type: "departures" as const,
+    displayMode: "grouped_by_route" as const,
+    title: "Grouped by Route",
+    description: "Shows departures grouped by transit route."
 };
 
 export default function GroupedByRoute({ groupedItems, config, theme, clickableTrips, handleTripClick }: Props) {

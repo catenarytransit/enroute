@@ -1,13 +1,17 @@
-import React, { useEffect, useState, type JSX } from "react";
+import { useCallback, useEffect, useState, type JSX } from "react";
 import Pane from "../Pane";
-import { PaneConfigModal } from "../PaneConfigModal";
 import type { PaneConfig } from "../types/PaneConfig";
-import { loadDynamicPanes } from "utils/DynamicLoader.ts";
+import { getAvailablePaneTypes } from "utils/DynamicLoader.ts";
+import { DisplayHeader } from "../common/DisplayHeader";
+import { usePaneEditor } from "../context/PaneEditorContext";
+import { PaneEditorSetup } from "../PaneEditorSetup";
 
 
 // theres a bug where we can't have a display called "Default" because of the file name conflicting with the default export
 
-export function DefaultDisplay(): JSX.Element {
+function DefaultDisplayContent(): JSX.Element {
+    const { isEditing, setIsEditing, setEditingPane, setOnPaneSaved } = usePaneEditor();
+
     // Global State
     const [deviceLocation, setDeviceLocation] = useState<{ lat: number; lon: number } | null>(null);
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -23,9 +27,6 @@ export function DefaultDisplay(): JSX.Element {
         panes: [{ id: "p1", type: "alerts" }],
     });
 
-    const [isEditing, setIsEditing] = useState(false);
-    const [editingPaneId, setEditingPaneId] = useState<string | null>(null);
-
     // Settings
     const getSetting = (key: string) => {
         if (typeof window === "undefined") return null;
@@ -37,9 +38,8 @@ export function DefaultDisplay(): JSX.Element {
     const theme = getSetting("theme") || "standard";
     const clickableTrips = getSetting("clickable_trips") === "true";
 
-    // Initialization and Timer
+    // Window Resize & Initial Setup
     useEffect(() => {
-        // Window Resize
         const handleResize = () => {
             setInnerWidth(window.innerWidth);
             setInnerHeight(window.innerHeight);
@@ -62,7 +62,31 @@ export function DefaultDisplay(): JSX.Element {
         // Clock
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
 
-        // Geolocation
+        // Dynamic Panes - only load if no saved layout exists
+        if (!savedLayout) {
+            getAvailablePaneTypes().then((availablePaneTypes) => {
+                if (availablePaneTypes.length > 0) {
+                    // Create one pane per available type (or customize as needed)
+                    const initialPanes = availablePaneTypes.slice(0, 1).map((paneType) => ({
+                        id: `pane-${paneType.type}-${Date.now()}`,
+                        type: paneType.type,
+                    }));
+                    setLayout((prevLayout) => ({
+                        ...prevLayout,
+                        panes: initialPanes.length > 0 ? initialPanes : prevLayout.panes,
+                    }));
+                }
+            });
+        }
+
+        return () => {
+            window.removeEventListener("resize", handleResize);
+            clearInterval(timer);
+        };
+    }, []);
+
+    // Geolocation - separate effect to ensure it always runs
+    useEffect(() => {
         const urlLat = getSetting("lat");
         const urlLon = getSetting("lon");
 
@@ -71,7 +95,7 @@ export function DefaultDisplay(): JSX.Element {
                 lat: parseFloat(urlLat),
                 lon: parseFloat(urlLon),
             });
-        } else if ("geolocation" in navigator) {
+        } else if ("geolocation" in navigator && !deviceLocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     setDeviceLocation({
@@ -85,23 +109,7 @@ export function DefaultDisplay(): JSX.Element {
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
         }
-
-        // Dynamic Panes
-        loadDynamicPanes().then((loadedPanes) => {
-            setLayout((prevLayout) => ({
-                ...prevLayout,
-                panes: loadedPanes.map((pane) => ({
-                    id: pane.metadata.title,
-                    type: pane.metadata.type as PaneConfig['type'], // Cast type to match PaneConfig['type']
-                })),
-            }));
-        });
-
-        return () => {
-            window.removeEventListener("resize", handleResize);
-            clearInterval(timer);
-        };
-    }, []);
+    }, [deviceLocation]);
 
     // Handlers
     const saveLayout = (newLayout: typeof layout) => {
@@ -127,107 +135,45 @@ export function DefaultDisplay(): JSX.Element {
         saveLayout({ rows, cols, panes: newPanes });
     };
 
-    const updatePaneConfig = (id: string, updates: Partial<PaneConfig>) => {
-        const newPanes = layout.panes.map((p) =>
-            p.id === id ? { ...p, ...updates } : p
-        );
-        saveLayout({ ...layout, panes: newPanes });
-    };
+    const updatePaneConfig = useCallback((id: string, updates: Partial<PaneConfig>) => {
+        setLayout(prevLayout => {
+            const newPanes = prevLayout.panes.map((p) =>
+                p.id === id ? { ...p, ...updates } : p
+            );
+            const newLayout = { ...prevLayout, panes: newPanes };
+            localStorage.setItem("enroute_layout_v1", JSON.stringify(newLayout));
+            return newLayout;
+        });
+    }, []);
+
+    // Set up global pane save handler for this display
+    const handlePaneSave = useCallback((paneId: string, config: Partial<PaneConfig>) => {
+        updatePaneConfig(paneId, config);
+    }, [updatePaneConfig]);
+
+    useEffect(() => {
+        console.log('DefaultDisplay: registering handlePaneSave', { handlePaneSaveExists: !!handlePaneSave });
+        setOnPaneSaved(() => handlePaneSave);
+        return () => {
+            console.log('DefaultDisplay: clearing handlePaneSave');
+            setOnPaneSaved(null);
+        };
+    }, [handlePaneSave]);
 
     return (
         <div
             className="fixed top-0 left-0 w-screen h-screen overflow-hidden font-sans"
             style={{ backgroundColor: "var(--catenary-background)" }}
         >
-            {/* Header Bar */}
-            <div
-                className="absolute top-0 left-0 w-full  flex items-center justify-between z-20 border-b-2 border-slate-500 shadow-md"
-                style={{
-                    height: isPortrait ? "5vh" : "6vh",
-                    paddingLeft: isPortrait ? "3vw" : "1.5vw",
-                    paddingRight: isPortrait ? "3vw" : "1.5vw",
-                    backgroundColor: "var(--catenary-darksky)",
-                }}
-            >
-                <div className="flex items-center gap-4">
-                    <span
-                        className="font-bold truncate"
-                        style={{ fontSize: isPortrait ? "2.5vh" : "3vh" }}
-                    >
-                        Enroute Screen
-                    </span>
-                    <button
-                        onClick={() => setIsEditing(!isEditing)}
-                        className={`text-xs px-2 py-1 rounded border border-white/20 transition-colors ${
-                            isEditing
-                                ? "bg-yellow-500 text-black font-bold"
-                                : "bg-white/10 hover:bg-white/20"
-                        }`}
-                    >
-                        {isEditing ? "Done Editing" : "Edit Layout"}
-                    </button>
-
-                    {isEditing && (
-                        <div className="flex items-center gap-2 ml-4 px-2 py-0.5 rounded border border-slate-600 shadow-lg" style={{backgroundColor: 'rgba(30, 41, 59, 0.8)'}}>
-                            <button
-                                onClick={() => {
-                                     const event = new CustomEvent("openConfig");
-                                     window.dispatchEvent(event);
-                                }}
-                                className="text-[10px] font-bold  px-2 py-0.5 rounded transition-colors border border-slate-500"
-                            >
-                                Overall settings
-                            </button>
-                            <div className="w-px h-4 bg-slate-600 mx-1"></div>
-                            <span className="text-[10px] font-bold text-slate-400">GRID</span>
-                            <div className="flex items-center gap-1">
-                                <label className="text-xs " htmlFor="rows">Rows</label>
-                                <select
-                                    id="rows"
-                                    className="bg-slate-700 rounded px-1 py-0.5 text-xs  border border-slate-600 outline-none hover:bg-slate-600"
-                                    value={layout.rows}
-                                    onChange={(e) => updateGridSize(parseInt(e.target.value), layout.cols)}
-                                >
-                                    {[1, 2, 3, 4].map((n) => (
-                                        <option key={n} value={n}>
-                                            {n}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <span className="text-slate-600 font-bold">×</span>
-                            <div className="flex items-center gap-1">
-                                <label className="text-xs " htmlFor="cols">Cols</label>
-                                <select
-                                    id="cols"
-                                    className="bg-slate-700 rounded px-1 py-0.5 text-xs  border border-slate-600 outline-none hover:bg-slate-600"
-                                    value={layout.cols}
-                                    onChange={(e) => updateGridSize(layout.rows, parseInt(e.target.value))}
-                                >
-                                    {[1, 2, 3, 4].map((n) => (
-                                        <option key={n} value={n}>
-                                            {n}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Header Clock */}
-                <span
-                    className="font-medium font-mono"
-                    style={{ fontSize: isPortrait ? "2.5vh" : "3vh" }}
-                >
-                    {currentTime.toLocaleTimeString([], {
-                        hour: "numeric",
-                        minute: "2-digit",
-                        second: "2-digit",
-                        hour12: !use24h,
-                    })}
-                </span>
-            </div>
+            <DisplayHeader
+                title="Enroute Screen"
+                isEditing={isEditing}
+                onEditToggle={setIsEditing}
+                gridRows={layout.rows}
+                gridCols={layout.cols}
+                onGridChange={updateGridSize}
+                showGridControls={true}
+            />
 
             {/* Main Content Area */}
             <div
@@ -258,7 +204,11 @@ export function DefaultDisplay(): JSX.Element {
                                     ? "border-dashed border-2 border-yellow-500/50 bg-slate-800/80"
                                     : ""
                             }
-                            onEdit={() => setEditingPaneId(pane.id)}
+                            onEdit={() => setEditingPane({
+                                paneId: pane.id,
+                                config: pane,
+                                displayName: `Pane: ${pane.id}`
+                            })}
                         />
                     ))}
                 </div>
@@ -271,19 +221,16 @@ export function DefaultDisplay(): JSX.Element {
                     style={{ backgroundImage: "url(/art/default.png)" }}
                 ></div>
             )}
-
-
-            {/* Pane Config Modal */}
-            {isEditing && editingPaneId && (
-                <PaneConfigModal
-                    pane={layout.panes.find((p) => p.id === editingPaneId)!}
-                    onSave={(config) => {
-                        updatePaneConfig(editingPaneId, config);
-                        setEditingPaneId(null);
-                    }}
-                    onClose={() => setEditingPaneId(null)}
-                />
-            )}
         </div>
     );
 }
+
+export function DefaultDisplay(): JSX.Element {
+    return (
+        <PaneEditorSetup>
+            <DefaultDisplayContent />
+        </PaneEditorSetup>
+    );
+}
+
+export default DefaultDisplay;

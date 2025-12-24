@@ -11,8 +11,10 @@ interface Props {
 }
 
 export const metadata = {
-  title: "Train Departure Pane",
-  description: "Displays train departure information."
+    type: "departures" as const,
+    displayMode: "train_departure" as const,
+    title: "Train Departures",
+    description: "Shows departures in a train station board format."
 };
 
 export default function TrainDeparture({ displayItems, config, theme, clickableTrips, handleTripClick }: Props) {
@@ -36,11 +38,10 @@ export default function TrainDeparture({ displayItems, config, theme, clickableT
                     {displayItems.map((item) => (
                         <tr
                             key={item.key}
-                            className={`items-center ${
-                                config.useRouteColor
+                            className={`items-center ${config.useRouteColor
                                     ? "text-white font-bold"
                                     : `border-b ${theme === "blue_white" ? "border-white" : "border-slate-700"} last:border-0`
-                            } ${clickableTrips ? "cursor-pointer hover:bg-white/10" : ""}`}
+                                } ${clickableTrips ? "cursor-pointer hover:bg-white/10" : ""}`}
                             style={config.useRouteColor ? { backgroundColor: item.color, color: item.textColor } : {}}
                             onClick={() => handleTripClick(item)}
                         >
