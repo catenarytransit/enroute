@@ -15,12 +15,13 @@ import { PaneEditorSetup } from "../PaneEditorSetup";
 
 function StationContent(): JSX.Element {
     const getSetting = (key: string, defaultValue = "") => {
-        if (typeof window === "undefined") return defaultValue;
-        const params = new URLSearchParams(window.location.search);
-        return params.get(key) || localStorage.getItem(`enroute_${key}`) || defaultValue;
-    };
+         if (typeof window === "undefined") return defaultValue;
+         const params = new URLSearchParams(window.location.search);
+         return params.get(key) || localStorage.getItem(`enroute_${key}`) || defaultValue;
+     };
 
-    const use24h = getSetting("24h") !== "false";
+     const use24h = getSetting("24h") !== "false";
+     const theme = getSetting("theme") || "default";
 
     const [arrivals, setArrivals] = useState<Arrival[]>([]);
     const [activeAlerts, setActiveAlerts] = useState<string[]>([]);
@@ -42,19 +43,39 @@ function StationContent(): JSX.Element {
 
     const { isEditing, setIsEditing, editingPane, setEditingPane, closeEditingPane, setOnPaneSaved } = usePaneEditor();
 
-    const defaultDeparturesConfig: PaneConfig = {
-        id: "station-departures",
-        type: "departures",
-        displayMode: "simple",
-    };
-    const defaultImageConfig: PaneConfig = {
-        id: "station-image",
-        type: "image",
-        imageUrl: "/alert/pride.png",
+    const defaultLayout = {
+        rows: 1,
+        cols: 2,
+        panes: [
+            {
+                id: "station-departures",
+                type: "departures",
+                displayMode: "simple",
+                useRouteColor: true,
+            },
+            {
+                id: "station-image",
+                type: "image",
+                imageUrl: "/alert/pride.png",
+            }
+        ]
     };
 
-    const [departuresConfig, setDeparturesConfig] = useState<PaneConfig>(defaultDeparturesConfig);
-    const [imageConfig, setImageConfig] = useState<PaneConfig>(defaultImageConfig);
+    const [layout, setLayout] = useState<{ rows: number; cols: number; panes: PaneConfig[] }>(() => {
+        if (typeof window === "undefined") return defaultLayout;
+        const saved = localStorage.getItem("enroute_station_layout_v1");
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (parsed.rows && parsed.cols && Array.isArray(parsed.panes)) {
+                    return parsed;
+                }
+            } catch (e) {
+                console.error("Failed to load station layout", e);
+            }
+        }
+        return defaultLayout;
+    });
 
     const announcerRef = useRef<any>(null);
 
@@ -136,14 +157,45 @@ function StationContent(): JSX.Element {
 
 
 
+    const saveLayout = (newLayout: typeof layout) => {
+        setLayout(newLayout);
+        localStorage.setItem("enroute_station_layout_v1", JSON.stringify(newLayout));
+    };
+
+    const updateGridSize = (rows: number, cols: number) => {
+        const newPanes = [...layout.panes];
+        const targetCount = rows * cols;
+
+        if (newPanes.length < targetCount) {
+            for (let i = newPanes.length; i < targetCount; i++) {
+                newPanes.push({
+                    id: `p${Date.now()}-${Math.random()}`,
+                    type: "departures",
+                    useRouteColor: true,
+                });
+            }
+        } else if (newPanes.length > targetCount) {
+            newPanes.splice(targetCount);
+        }
+
+        saveLayout({ rows, cols, panes: newPanes });
+    };
+
+    const updatePaneConfig = useCallback((id: string, updates: Partial<PaneConfig>) => {
+        setLayout(prevLayout => {
+            const newPanes = prevLayout.panes.map((p) =>
+                p.id === id ? { ...p, ...updates } : p
+            );
+            const newLayout = { ...prevLayout, panes: newPanes };
+            localStorage.setItem("enroute_station_layout_v1", JSON.stringify(newLayout));
+            return newLayout;
+        });
+    }, []);
+
     // Set up global pane save handler for this display
     const handlePaneSave = useCallback((paneId: string, config: Partial<PaneConfig>) => {
-        if (paneId === 'departures') {
-            setDeparturesConfig(prev => ({ ...prev, ...config }));
-        } else if (paneId === 'image') {
-            setImageConfig(prev => ({ ...prev, ...config }));
-        }
-    }, []);
+        updatePaneConfig(paneId, config);
+    }, [updatePaneConfig]);
 
     useEffect(() => {
         setOnPaneSaved(() => handlePaneSave);
@@ -151,8 +203,7 @@ function StationContent(): JSX.Element {
     }, [handlePaneSave]);
 
     const resetLayout = () => {
-        setDeparturesConfig(defaultDeparturesConfig);
-        setImageConfig(defaultImageConfig);
+        saveLayout(defaultLayout);
     };
 
     useEffect(() => {
@@ -175,7 +226,10 @@ function StationContent(): JSX.Element {
                  isEditing={isEditing}
                  onEditToggle={setIsEditing}
                  onReset={resetLayout}
-                 showGridControls={false}
+                 gridRows={layout.rows}
+                 gridCols={layout.cols}
+                 onGridChange={updateGridSize}
+                 showGridControls={true}
              />
 
             <div className="fixed top-0 left-0 w-screen h-screen bg-cover bg-center opacity-30 pointer-events-none -z-10" style={{ backgroundImage: "url(/art/default.png)" }} />
@@ -186,57 +240,47 @@ function StationContent(): JSX.Element {
                     <span className="text-white/50 animate-pulse">Loading station data...</span>
                 </div>
             ) : (
-                <>
-                    {/* Departures Pane - Left half */}
-                     <div className="fixed left-0" style={{
-                         top: "6vh",
-                         height: "calc(100vh - 6vh)",
-                         width: isPortrait ? "100%" : "50%",
-                         padding: "10px",
-                         zIndex: 10,
-                     }}>
-                         <Pane
-                             config={{
-                                 ...departuresConfig,
-                                 location: stopCoords,
-                                 radius: 500, // Only show departures at this specific stop
-                             }}
-                             theme="default"
-                             use24h={use24h}
-                             deviceLocation={stopCoords}
-                             stopData={stopDepartures}
-                             isEditing={isEditing}
-                             onEdit={() => setEditingPane({
-                                 paneId: 'departures',
-                                 config: { ...departuresConfig, location: stopCoords, radius: 500 },
-                                 displayName: 'Departures'
-                             })}
-                         />
-                     </div>
-
-                    {/* Image Pane - Right half (landscape only) */}
-                    {!isPortrait && (
-                        <div className="fixed right-0" style={{
-                            top: "6vh",
-                            height: "calc(100vh - 6vh)",
-                            width: "50%",
-                            padding: "10px",
-                            zIndex: 10,
-                        }}>
+                <div
+                    className="absolute left-0 right-0 bottom-0 overflow-hidden"
+                    style={{
+                        top: "6vh",
+                        padding: isEditing ? "20px" : "0",
+                    }}
+                >
+                    <div
+                        className="w-full h-full grid gap-2 p-2 transition-all duration-300"
+                        style={{
+                            gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
+                            gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))`,
+                        }}
+                    >
+                        {layout.panes.map((pane) => (
                             <Pane
-                                config={imageConfig}
-                                theme="default"
-                                use24h={use24h}
+                                key={pane.id}
+                                config={{
+                                    ...pane,
+                                    location: pane.type === 'departures' ? stopCoords : pane.location,
+                                    radius: pane.type === 'departures' ? 500 : pane.radius,
+                                }}
                                 isEditing={isEditing}
+                                theme={theme}
+                                use24h={use24h}
+                                deviceLocation={stopCoords}
+                                stopData={pane.type === 'departures' ? stopDepartures : undefined}
+                                className={
+                                    isEditing
+                                        ? "border-dashed border-2 border-yellow-500/50 bg-slate-800/80"
+                                        : ""
+                                }
                                 onEdit={() => setEditingPane({
-                                    paneId: 'image',
-                                    config: imageConfig,
-                                    displayName: 'Image'
+                                    paneId: pane.id,
+                                    config: pane,
+                                    displayName: `Pane: ${pane.id}`
                                 })}
                             />
-                        </div>
-                    )}
-                </>
+                        ))}
+                    </div>
+                </div>
             )}
 
 

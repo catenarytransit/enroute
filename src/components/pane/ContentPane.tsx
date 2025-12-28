@@ -40,22 +40,25 @@ const ContentPane: React.FC<ContentPaneProps> = ({
   iframeUrl,
 }) => {
   return (
-    <div className="grow overflow-auto p-2 scrollbar-hide flex flex-col">
+    <div className="grow overflow-auto p-2 scrollbar-hide flex flex-col h-full">
       {/* Header */}
-      <div className="pb-3 mb-3 border-b border-slate-700 shrink-0">
-        <h3 className="font-bold text-sm text-slate-200">{title}</h3>
-      </div>
+      {!iframeUrl && (
+        <div className="pb-3 mb-3 border-b border-slate-700 shrink-0">
+          <h3 className="font-bold text-sm text-slate-200">{title}</h3>
+        </div>
+      )}
 
       {/* Content */}
       {iframeUrl ? (
         <iframe
           src={iframeUrl}
-          className="flex-1 border border-slate-600 rounded"
+          className="flex-1 border border-slate-600 rounded w-full"
           title={title}
           sandbox="allow-same-origin allow-scripts allow-popups"
         />
       ) : (
         <div className="text-sm text-slate-300 leading-relaxed">
+          <h3 className="font-bold text-sm text-slate-200 mb-3">{title}</h3>
           {content}
         </div>
       )}

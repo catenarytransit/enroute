@@ -19,19 +19,23 @@ export const metadata = {
 
 export default function TrainDeparture({ displayItems, config, theme, clickableTrips, handleTripClick }: Props) {
     return (
-        <div className="overflow-x-auto">
-            <table className="w-full text-left font-mono text-sm border-spacing-0">
+        <div className="overflow-x-auto w-full p-2">
+            <table className="w-full text-left font-mono text-sm border-spacing-0" style={{ tableLayout: 'auto' }}>
                 <thead>
-                    <tr className={`text-xs font-bold text-slate-400 border-b ${theme === "blue_white" ? "border-white" : "border-slate-700"}`}>
+                    <tr className={`text-xs pb-1 font-bold text-slate-400 border-b ${theme === "blue_white" ? "border-white" : "border-slate-700"}`}>
                         {config.showRouteShortName !== false && (
-                            <th className="px-2 py-1">Rte</th>
+                            <th className="whitespace-nowrap pl-2">Rte</th>
                         )}
-                        <th className="px-2 py-1">Time</th>
+                        <th className="whitespace-nowrap">Time</th>
                         {config.showTripShortName !== false && (
-                            <th className="px-2 py-1">Trip</th>
+                            <th className="whitespace-nowrap">Trip</th>
                         )}
-                        <th className="px-2 py-1 w-full">Direction</th>
-                        <th className="px-2 py-1 text-right">Plat</th>
+                        <th>Direction</th>
+                        <th className="whitespace-nowrap"></th>
+                        {
+                            /* remove plaform is no displayItems have platform info */
+                            displayItems.some(item => item.platform) && <th className="text-right whitespace-nowrap pr-2">Plat</th>
+                        }
                     </tr>
                 </thead>
                 <tbody>
@@ -41,19 +45,39 @@ export default function TrainDeparture({ displayItems, config, theme, clickableT
                             className={`items-center ${config.useRouteColor
                                     ? "text-white font-bold"
                                     : `border-b ${theme === "blue_white" ? "border-white" : "border-slate-700"} last:border-0`
-                                } ${clickableTrips ? "cursor-pointer hover:bg-white/10" : ""}`}
+                                } ${clickableTrips ? "cursor-pointer hover:bg-white/10" : ""} ${item.cancelled ? "opacity-60 line-through" : ""}`}
                             style={config.useRouteColor ? { backgroundColor: item.color, color: item.textColor } : {}}
                             onClick={() => handleTripClick(item)}
                         >
                             {config.showRouteShortName !== false && (
-                                <td className="px-2 py-1 font-bold">{item.routeShortName}</td>
+                                <td className="font-bold whitespace-nowrap pl-2">{item.routeShortName}</td>
                             )}
-                            <td className="px-2 py-1 whitespace-nowrap">{item.formattedTime}</td>
+                            <td className={`whitespace-nowrap`}>
+                                <span className={`${item.cancelled ? "line-through text-red-600" : ""}`}>
+                                    {item.formattedTime}
+                                </span>
+                                {item.delayMinutes && !item.cancelled && (<span className="ml-1 text-yellow-400">⚠️</span>)}
+                                {item.cancelled && (<span className="text-red-400 ml-1">✕</span>)}
+                            </td>
                             {config.showTripShortName !== false && (
-                                <td className="px-2 py-1 font-bold">{item.tripShortName}</td>
+                                <td className="font-bold whitespace-nowrap">{item.tripShortName}</td>
                             )}
-                            <td className="px-2 py-1 truncate max-w-[100px]">{item.headsign}</td>
-                            <td className="px-2 py-1 text-right">{item.platform || "-"}</td>
+                            <td>{item.headsign}</td>
+                            <td className="whitespace-nowrap">
+                                {item.delayMinutes && !item.cancelled && (
+                                    <div className="flex items-center gap-1">
+                                        <span>Delayed {item.delayMinutes} mins</span>
+                                    </div>
+                                )}
+                                {item.cancelled && (
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-xs text-red-400">Canceled</span>
+                                    </div>
+                                )}
+                            </td>
+                            {
+                                displayItems.some(item => item.platform) && <td className="text-right whitespace-nowrap pr-2">{item.platform || "-"}</td>
+                            }
                         </tr>
                     ))}
                 </tbody>

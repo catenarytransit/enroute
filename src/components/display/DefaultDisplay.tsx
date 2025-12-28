@@ -24,7 +24,7 @@ function DefaultDisplayContent(): JSX.Element {
     const [layout, setLayout] = useState<{ rows: number; cols: number; panes: PaneConfig[] }>({
         rows: 1,
         cols: 1,
-        panes: [{ id: "p1", type: "alerts" }],
+        panes: [{ id: "p1", type: "departures", useRouteColor: true }],
     });
 
     // Settings
@@ -126,6 +126,7 @@ function DefaultDisplayContent(): JSX.Element {
                 newPanes.push({
                     id: `p${Date.now()}-${Math.random()}`,
                     type: "departures",
+                    useRouteColor: true,
                 });
             }
         } else if (newPanes.length > targetCount) {
@@ -133,6 +134,15 @@ function DefaultDisplayContent(): JSX.Element {
         }
 
         saveLayout({ rows, cols, panes: newPanes });
+    };
+
+    const resetLayout = () => {
+        const defaultLayout = {
+            rows: 1,
+            cols: 1,
+            panes: [{ id: "p1", type: "departures", useRouteColor: true }],
+        };
+        saveLayout(defaultLayout);
     };
 
     const updatePaneConfig = useCallback((id: string, updates: Partial<PaneConfig>) => {
@@ -172,6 +182,7 @@ function DefaultDisplayContent(): JSX.Element {
                 gridRows={layout.rows}
                 gridCols={layout.cols}
                 onGridChange={updateGridSize}
+                onReset={resetLayout}
                 showGridControls={true}
             />
 

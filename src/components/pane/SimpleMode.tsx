@@ -23,28 +23,36 @@ export default function SimpleMode({ displayItems, config, clickableTrips, paddi
             {displayItems.map((item) => (
                 <div
                     key={item.key}
-                    className={`rounded leading-none flex items-center justify-between shadow hover:brightness-110 shrink-0 ${clickableTrips ? "cursor-pointer" : "cursor-default"}`}
-                    style={{ 
+                    className={`rounded-lg leading-none flex items-center justify-between shadow-lg hover:brightness-110 shrink-0 ${clickableTrips ? "cursor-pointer" : "cursor-default"}`}
+                    style={{
                         padding: "var(--compact-padding)",
-                        ...(config.useRouteColor ? { backgroundColor: item.color, color: item.textColor } : {}), 
-                        ...paddingStyle 
+                        ...(config.useRouteColor ? { backgroundColor: item.color, color: item.textColor } : {}),
+                        ...paddingStyle,
                     }}
-                    onClick={() => handleTripClick(item)}
+                    onClick={() => clickableTrips && handleTripClick(item)}
                     role="button"
                     tabIndex={0}
                 >
-                    <div className="flex-grow overflow-hidden" style={{ marginRight: "var(--compact-gap)" }}>
-                        <div className="flex items-baseline overflow-hidden" style={{ gap: "var(--compact-gap)" }}>
-                            <span className="font-bold whitespace-nowrap">{item.routeShortName}</span>
-                            <span className="font-medium truncate">to {item.headsign}</span>
+                    <div className="flex-grow overflow-hidden">
+                        <div className="font-medium opacity-90" style={{ marginBottom: "0.2vh" }}>
+                            <span className="font-bold">{item.routeShortName}</span> <span className="opacity-70">towards</span>
+                        </div>
+                        <div className="font-bold truncate" style={{ fontSize: "1.2em" }}>
+                            {item.headsign}
                         </div>
                     </div>
-                    <div className="font-bold text-lg whitespace-nowrap">
-                        {item.min}
-                        <span className="text-xs font-light" style={{ marginLeft: "var(--compact-gap)" }}>min</span>
+                    <div className="font-bold text-right" style={{ fontSize: "1.2em", minWidth: "5em" }}>
+                        {item.min <= 0 ? (
+                            <span className="animate-pulse text-yellow-300">DUE</span>
+                        ) : (
+                            <>
+                                {item.min} <span className="font-light opacity-80">min</span>
+                            </>
+                        )}
                     </div>
                 </div>
             ))}
         </div>
     );
 }
+

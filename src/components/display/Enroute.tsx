@@ -102,8 +102,7 @@ export const EnrouteDisplay: React.FC = () => {
         if (!tripInfo) return { stopMetrics: [], lineHeight: 0 };
 
         const CONTAINER_TOP = 7;
-        const CONTAINER_PAD = 1;
-        let cursor = CONTAINER_TOP + CONTAINER_PAD;
+        let cursor = CONTAINER_TOP;
 
         const metrics = tripInfo.nextStops.map((stop) => {
             const isSpacer = stop.isSpacer;
@@ -133,23 +132,27 @@ export const EnrouteDisplay: React.FC = () => {
     const tripTitle = tripInfo ? `${tripInfo.route}${tripInfo.run ? ` #${tripInfo.run}` : ''} to ${fixStationName(tripInfo.finalStop)}` : "Loading...";
 
     return (
-        <div className="w-screen h-screen overflow-hidden relative font-sans">
+        <div className="w-screen h-screen overflow-hidden relative font-sans" style={{ backgroundColor: "var(--catenary-background)" }}>
             {tripInfo ? (
                 <>
                     <DisplayHeader
                         title={tripTitle}
                         showGridControls={false}
+                        showEditButton={false}
                     />
 
                     {/* Stop List */}
                     <div
-                        className="fixed grid grid-cols-1 p-[1hUnit]"
+                        className="fixed grid grid-cols-1"
                         style={{
                             top: `7${vUnit}`,
                             right: isPortrait ? `2${vUnit}` : `1${hUnit}`,
                             width: isPortrait ? `calc(100vw - 4${vUnit})` : `90${hUnit}`,
                             left: isPortrait ? `2${vUnit}` : "auto",
-                            padding: `1${hUnit}`
+                            paddingLeft: `1${hUnit}`,
+                            paddingRight: `0.8${hUnit}`,
+                            paddingTop: 0,
+                            paddingBottom: 0
                         }}
                     >
                         {tripInfo.nextStops.map((stop, index) => (
@@ -172,7 +175,7 @@ export const EnrouteDisplay: React.FC = () => {
                                     </div>
                                 ) : (
                                     <div
-                                        className="rounded-lg leading-none flex items-center justify-start cursor-pointer hover:brightness-110 active:scale-[0.98] transition-all"
+                                        className="rounded-lg leading-none flex items-center justify-start cursor-pointer hover:brightness-110 active:scale-[0.98] transition-all shadow-md"
                                         style={{
                                             gap: isPortrait ? "3vw" : `2${hUnit}`,
                                             backgroundColor: tripInfo.color,
@@ -297,7 +300,7 @@ export const EnrouteDisplay: React.FC = () => {
                             }}
                         >
                             <span
-                                className="font-bold tracking-tight"
+                                className="font-bold uppercase tracking-tight"
                                 style={{ fontSize: `3.5${vUnit}` }}
                             >
                                 {announcementTextChunk === "[MSG]" ? (
@@ -320,26 +323,11 @@ export const EnrouteDisplay: React.FC = () => {
             ) : (
                 /* Loading / Error State */
                 <>
-                    <div
-                        className="fixed top-0 left-0 w-full text-white flex items-center justify-between z-50 border-b-2 border-slate-500"
-                        style={{
-                            height: `6${vUnit}`,
-                            paddingLeft: `2${hUnit}`,
-                            paddingRight: `2${hUnit}`,
-                            backgroundColor: "var(--catenary-darksky)",
-                        }}
-                    >
-                        <span className="font-bold truncate" style={{ fontSize: `3${vUnit}` }}>
-                            Loading...
-                        </span>
-                        <span className="font-medium font-mono" style={{ fontSize: `3${vUnit}` }}>
-                            {currentTime.toLocaleTimeString([], {
-                                hour: "numeric",
-                                minute: "2-digit",
-                                second: "2-digit",
-                            })}
-                        </span>
-                    </div>
+                    <DisplayHeader
+                        title="Loading..."
+                        showGridControls={false}
+                        showEditButton={false}
+                    />
                     {error ? (
                         <p
                             className="font-semibold text-red-500 w-screen h-screen flex items-center justify-center"
@@ -349,8 +337,8 @@ export const EnrouteDisplay: React.FC = () => {
                         </p>
                     ) : (
                         <p
-                            className="font-semibold text-seashore w-screen h-screen flex items-center justify-center"
-                            style={{ fontSize: `2${vUnit}` }}
+                            className="font-semibold w-screen h-screen flex items-center justify-center"
+                            style={{ fontSize: `2${vUnit}`, color: "var(--catenary-seashore)" }}
                         >
                             Loading...
                         </p>

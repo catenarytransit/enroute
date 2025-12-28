@@ -149,6 +149,7 @@ export default function JREnroute(): JSX.Element {
             <DisplayHeader
                 title={tripTitle}
                 showGridControls={false}
+                showEditButton={false}
             />
 
             <div style={{ top: '6vh' }} className="absolute left-0 right-0 bottom-0 overflow-auto">

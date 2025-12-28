@@ -27,7 +27,21 @@ export function getDisplayItemsFiltered(items: DisplayItem[], config: PaneConfig
         );
     }
 
-    return filtered.slice(0, 50);
+    // Limit to 3 departures per stop to show variety of stops
+    const stopCounts: Record<string, number> = {};
+    const limited = filtered.filter((item) => {
+        const stopKey = item.stopId;
+        if (!stopCounts[stopKey]) {
+            stopCounts[stopKey] = 0;
+        }
+        if (stopCounts[stopKey] < 3) {
+            stopCounts[stopKey]++;
+            return true;
+        }
+        return false;
+    });
+
+    return limited;
 }
 
 export function groupDepartures(items: DisplayItem[]): RouteGroup[] {

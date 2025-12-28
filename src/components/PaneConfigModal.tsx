@@ -38,7 +38,7 @@ export const PaneConfigModal: React.FC<PaneConfigModalProps> = ({
     const [groupingTheme, setGroupingTheme] = useState<"default" | "ratp">(
         pane.groupingTheme || "default"
     );
-    const [useRouteColor, setUseRouteColor] = useState(pane.useRouteColor || false);
+    const [useRouteColor, setUseRouteColor] = useState(pane.useRouteColor ?? true);
     const [showTripShortName, setShowTripShortName] = useState(pane.showTripShortName ?? true);
     const [showRouteShortName, setShowRouteShortName] = useState(pane.showRouteShortName ?? true);
     const [simplePaddingX, setSimplePaddingX] = useState(pane.simplePaddingX || "2");

@@ -7,6 +7,7 @@ interface ConfigModalProps {
 
 export const ConfigModal: React.FC<ConfigModalProps> = ({ onClose }) => {
 	const [themePreference, setThemePreference] = useState("default");
+	const [paneStyle, setPaneStyle] = useState<"default" | "flush">("default");
 	const [use24HourTime, setUse24HourTime] = useState(true);
 	const [fontPreference, setFontPreference] = useState("barlow");
 	const [clickableTrips, setClickableTrips] = useState(false);
@@ -21,12 +22,14 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ onClose }) => {
 		};
 
 		const urlTheme = getSetting("theme");
+		const urlPaneStyle = getSetting("pane_style") as "default" | "flush" | null;
 		const url24h = getSetting("24h") !== "false";
 		const urlClickable = getSetting("clickable_trips") === "true";
 		const urlAutoRefresh = getSetting("auto_refresh") !== "false";
 		const urlCompactMode = getSetting("compact_mode") === "true";
 
 		if (urlTheme) setThemePreference(urlTheme);
+		if (urlPaneStyle) setPaneStyle(urlPaneStyle);
 		setUse24HourTime(url24h);
 		setClickableTrips(urlClickable);
 		setAutoRefresh(urlAutoRefresh);
@@ -39,6 +42,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ onClose }) => {
 	const saveConfig = () => {
 		const prefix = "enroute_";
 		localStorage.setItem(`${prefix}theme`, themePreference);
+		localStorage.setItem(`${prefix}pane_style`, paneStyle);
 		localStorage.setItem(`${prefix}24h`, use24HourTime.toString());
 		localStorage.setItem(`${prefix}font`, fontPreference);
 		localStorage.setItem(`${prefix}clickable_trips`, clickableTrips.toString());
@@ -162,6 +166,21 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ onClose }) => {
 							<option value="ns_light">NS Light (Dutch)</option>
 							<option value="ns_dark">NS Dark</option>
 							<option value="midnight">Midnight (White on Black)</option>
+							<option value="flush">Flush (No Borders/Backgrounds)</option>
+						</select>
+					</div>
+
+					{/* Pane Style Selection */}
+					<div>
+						<label className="block text-xs font-bold mb-2 opacity-80 text-white" htmlFor="paneStyleSelect">Pane Style</label>
+						<select
+							id="paneStyleSelect"
+							value={paneStyle}
+							onChange={(e) => setPaneStyle(e.target.value as "default" | "flush")}
+							className="w-full bg-slate-900/40 border border-slate-500 rounded-lg p-3 text-sm font-bold text-white focus:outline-none focus:border-blue-500 transition-colors"
+						>
+							<option value="default">Default</option>
+							<option value="flush">No borders</option>
 						</select>
 					</div>
 

@@ -102,10 +102,31 @@ export function convertStopResponseToNearbyFormat(
     };
 }
 
+/**
+ * Helper function to calculate distance between two points using Haversine formula
+ * @param lat1 Latitude of first point
+ * @param lon1 Longitude of first point
+ * @param lat2 Latitude of second point
+ * @param lon2 Longitude of second point
+ * @returns Distance in meters
+ */
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371000; // Earth's radius in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
 export function flattenDepartures(
     data: NearbyDeparturesFromCoordsV2Response | null,
     use24h: boolean,
-    tick: number
+    tick: number,
+    userLocation?: { lat: number; lon: number },
+    radiusMeters?: number
 ): DisplayItem[] {
     if (!data) return [];
 
@@ -142,6 +163,26 @@ export function flattenDepartures(
                             );
                             if (min < -2) return;
 
+                            // Calculate distance if user location is provided and stop info is available
+                            let distance: number | undefined = undefined;
+                            if (userLocation && stopInfo) {
+                                distance = calculateDistance(
+                                    userLocation.lat,
+                                    userLocation.lon,
+                                    stopInfo.lat,
+                                    stopInfo.lon
+                                );
+                            }
+
+                            // Calculate delay in minutes
+                            let delayMinutes: number | undefined = undefined;
+                            if (trip.departure_realtime && trip.departure_schedule) {
+                                const delaySeconds = trip.departure_realtime - trip.departure_schedule;
+                                if (delaySeconds > 0) {
+                                    delayMinutes = Math.floor(delaySeconds / 60);
+                                }
+                            }
+
                             items.push({
                                 key: `${dep.chateau_id}-${trip.trip_id}-${trip.stop_id}`,
                                 routeShortName: routeName,
@@ -175,6 +216,9 @@ export function flattenDepartures(
                                         stopInfo?.platform_code) ||
                                     undefined,
                                 directionId: dir.direction_id,
+                                distance: distance,
+                                cancelled: trip.cancelled,
+                                delayMinutes: delayMinutes,
                             });
                         });
                     });
@@ -195,7 +239,18 @@ export function flattenDepartures(
     });
 
     const sortedItems = Array.from(uniqueItems.values());
-    sortedItems.sort((a, b) => a.min - b.min);
+    // Sort by time first (soonest departures), then by distance (closer stops)
+    sortedItems.sort((a, b) => {
+        // Sort by time first
+        if (a.min !== b.min) {
+            return a.min - b.min;
+        }
+        // If times are equal, sort by distance (closer stops first)
+        if (a.distance !== undefined && b.distance !== undefined) {
+            return a.distance - b.distance;
+        }
+        return 0;
+    });
     return sortedItems;
 }
 

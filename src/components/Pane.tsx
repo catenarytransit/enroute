@@ -40,6 +40,13 @@ const Pane: React.FC<PaneProps> = ({
      nearbyData: externalNearbyData, // Destructure external nearbyData prop
      stopData: externalStopData, // Destructure external stopData prop
  }) => {
+    // Read paneStyle from localStorage/URL
+    const getSetting = (key: string) => {
+        if (typeof window === "undefined") return null;
+        const params = new URLSearchParams(window.location.search);
+        return params.get(key) || localStorage.getItem(`enroute_${key}`);
+    };
+    const paneStyle = (getSetting("pane_style") || "default") as "default" | "flush";
     // Derived Configuration
     const effectiveLocation = config.location || deviceLocation;
     const radius = config.radius || 1500;
@@ -139,8 +146,8 @@ const Pane: React.FC<PaneProps> = ({
     }, [stopData, nearbyData]);
     console.log("Pane activeData:", activeData);
     const allDepartures = useMemo(
-        () => flattenDepartures(activeData, use24h, minuteTick),
-        [activeData, use24h, minuteTick]
+        () => flattenDepartures(activeData, use24h, minuteTick, effectiveLocation || undefined, radius),
+        [activeData, use24h, minuteTick, effectiveLocation, radius]
     );
 
     console.log("Pane allDepartures:", allDepartures);
@@ -236,27 +243,26 @@ const Pane: React.FC<PaneProps> = ({
 
     return (
         <div
-            className={`relative overflow-hidden rounded-lg border ${theme === "blue_white" ? "border-white" : "border-slate-600"} flex flex-col ${className} ${theme === "default" ? "bg-slate-800/50" : ""
+            className={`relative overflow-hidden ${paneStyle === "flush" ? "" : "rounded-lg border"} ${theme === "blue_white" ? "border-white" : paneStyle === "flush" ? "" : "border-slate-600"} flex flex-col ${className} ${paneStyle === "flush" ? "bg-transparent" : theme === "default" ? "bg-slate-800/50" : ""
                 }`}
             style={style}
         >
             {/* Header / Config Bar */}
-            <div
-                className={`flex items-center justify-between px-3 py-1 border-b ${theme === "blue_white" ? "border-white" : "border-slate-600"} ${isEditing ? "border-yellow-500/50" : ""
-                    } ${theme === "default" ? "bg-slate-900/80" : ""}`}
-            >
-                <span className="font-bold text-sm text-slate-300 truncate">
-                    {`${config.type.charAt(0).toUpperCase() + config.type.slice(1)}`}
-                </span>
-                {isEditing && (
+            {isEditing && (
+                <div
+                    className={`flex items-center justify-between px-3 py-1 ${paneStyle === "flush" ? "" : "border-b"} ${theme === "blue_white" ? "border-white" : paneStyle === "flush" ? "" : "border-slate-600"} border-yellow-500/50 ${paneStyle === "flush" ? "bg-transparent" : theme === "default" ? "bg-slate-900/80" : ""}`}
+                >
+                    <span className="font-bold text-sm text-slate-300 truncate">
+                        {`${config.type.charAt(0).toUpperCase() + config.type.slice(1)}`}
+                    </span>
                     <button
                         onClick={handleEdit}
                         className="text-[10px] uppercase font-bold bg-yellow-600 text-black px-2 py-0.5 rounded ml-2 hover:bg-yellow-500"
                     >
                         Edit
                     </button>
-                )}
-            </div>
+                </div>
+            )}
 
             {/* Content */}
             <div className="grow overflow-auto scrollbar-hide" style={{ padding: "var(--compact-padding)" }}>
