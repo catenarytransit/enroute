@@ -43,7 +43,7 @@ export default function SimpleMode({ displayItems, config, clickableTrips, paddi
                     </div>
                     <div className="font-bold text-right" style={{ fontSize: "1.2em", minWidth: "5em" }}>
                         {item.min <= 0 ? (
-                            <span className="animate-pulse text-yellow-300">DUE</span>
+                            <span className="animate-pulse">DUE</span>
                         ) : (
                             <>
                                 {item.min} <span className="font-light opacity-80">min</span>
