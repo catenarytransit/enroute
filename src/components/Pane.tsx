@@ -172,7 +172,7 @@ const Pane: React.FC<PaneProps> = ({
     const handleTripClick = (item: DisplayItem) => {
         if (!clickableTrips) return;
         if (item.tripId && item.chateau) {
-            window.location.href = `/?mode=enroute&trip=${item.tripId}&chateau=${item.chateau}&24h=${use24h}&theme=${theme}`;
+            window.location.href = `/enroute?trip=${item.tripId}&chateau=${item.chateau}&24h=${use24h}&theme=${theme}`;
         }
     };
 

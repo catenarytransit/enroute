@@ -186,9 +186,9 @@ export const EnrouteDisplay: React.FC = () => {
                                             margin: `${isPortrait ? 0.4 : 0.6}${vUnit} 0.3${hUnit}`,
                                         }}
                                         onClick={() => {
-                                            if (stop.stopId) {
-                                                window.location.href = `/?mode=station&chateau=${tripInfo.chateau}&stop=${stop.stopId}`;
-                                            }
+                                             if (stop.stopId) {
+                                                 window.location.href = `/station?chateau=${tripInfo.chateau}&stop=${stop.stopId}`;
+                                             }
                                         }}
                                         role="button"
                                         tabIndex={0}

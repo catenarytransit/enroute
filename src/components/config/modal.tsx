@@ -166,7 +166,6 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ onClose }) => {
 							<option value="ns_light">NS Light (Dutch)</option>
 							<option value="ns_dark">NS Dark</option>
 							<option value="midnight">Midnight (White on Black)</option>
-							<option value="flush">Flush (No Borders/Backgrounds)</option>
 						</select>
 					</div>
 
@@ -252,6 +251,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ onClose }) => {
 							<option value="nimbus">Nimbus Sans (Helvetica-like)</option>
 							<option value="noto">Noto Sans</option>
 							<option value="fira">Fira Sans</option>
+							<option value="jetbrains_mono">Jetbrains Mono</option>
 						</select>
 					</div>
 				</div>

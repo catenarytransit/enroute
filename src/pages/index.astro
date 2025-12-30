@@ -4,24 +4,5 @@ import DefaultDisplay from "../components/display/DefaultDisplay.tsx";
 ---
 
 <Layout>
-	<fragment slot="head">
-		<script is:inline>
-			const params = new URLSearchParams(window.location.search);
-			const mode = params.get("mode");
-			if (mode && mode !== "index") {
-				const newPath =
-					mode === "enroute"
-						? "/enroute"
-						: mode === "station"
-							? "/station"
-							: mode === "jr-enroute"
-								? "/jr-enroute"
-								: null;
-				if (newPath) {
-					window.location.replace(newPath + window.location.search);
-				}
-			}
-		</script>
-	</fragment>
 	<DefaultDisplay client:only="react" />
 </Layout>

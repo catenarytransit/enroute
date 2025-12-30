@@ -1,0 +1,34 @@
+---
+import Layout from "../layouts/Layout.astro";
+import DefaultDisplay from "../components/display/DefaultDisplay";
+import Enroute from "../components/display/Enroute";
+import JREnroute from "../components/display/JREnroute";
+import Station from "../components/display/Station";
+
+export async function getStaticPaths() {
+	return [
+		{ params: { display: "enroute" } },
+		{ params: { display: "jr-enroute" } },
+		{ params: { display: "station" } },
+		{ params: { display: "default" } },
+	];
+}
+
+const { display } = Astro.params;
+
+const componentMap: Record<string, any> = {
+	enroute: Enroute,
+	"jr-enroute": JREnroute,
+	station: Station,
+	default: DefaultDisplay,
+};
+
+const Component = componentMap[display] || DefaultDisplay;
+---
+
+<Layout>
+	{display === 'enroute' && <Enroute client:only="react" />}
+	{display === 'jr-enroute' && <JREnroute client:only="react" />}
+	{display === 'station' && <Station client:only="react" />}
+	{!['enroute', 'jr-enroute', 'station'].includes(display) && <DefaultDisplay client:only="react" />}
+</Layout>
