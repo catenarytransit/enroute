@@ -24,8 +24,15 @@ function DefaultDisplayContent(): JSX.Element {
     const [layout, setLayout] = useState<{ rows: number; cols: number; panes: PaneConfig[] }>({
         rows: 1,
         cols: 1,
-        panes: [{ id: "p1", type: "departures", useRouteColor: true }],
+        panes: [
+            {
+                id: "p1",
+                type: "departures",
+                useRouteColor: true,
+            }
+        ]
     });
+
 
     // Settings
     const getSetting = (key: string) => {
@@ -47,7 +54,7 @@ function DefaultDisplayContent(): JSX.Element {
         window.addEventListener("resize", handleResize);
 
         // Load Layout
-        const savedLayout = localStorage.getItem("enroute_layout_v1");
+        const savedLayout = localStorage.getItem("enroute_layout_v2");
         if (savedLayout) {
             try {
                 const parsed = JSON.parse(savedLayout);
@@ -87,34 +94,64 @@ function DefaultDisplayContent(): JSX.Element {
 
     // Geolocation - separate effect to ensure it always runs
     useEffect(() => {
+        let mounted = true;
+
+        const tryIPGeolocation = () => {
+            fetch("https://cf-object.quacksire.workers.dev/")
+                .then((res) => res.json())
+                .then((data) => {
+                    if (mounted && data.latitude && data.longitude) {
+                        setDeviceLocation({
+                            lat: parseFloat(data.latitude),
+                            lon: parseFloat(data.longitude),
+                        });
+                    }
+                })
+                .catch((err) => {
+                    console.error("IP geolocation fallback failed", err);
+                });
+        };
+
         const urlLat = getSetting("lat");
         const urlLon = getSetting("lon");
 
         if (urlLat && urlLon) {
-            setDeviceLocation({
-                lat: parseFloat(urlLat),
-                lon: parseFloat(urlLon),
-            });
-        } else if ("geolocation" in navigator && !deviceLocation) {
+            if (mounted) {
+                setDeviceLocation({
+                    lat: parseFloat(urlLat),
+                    lon: parseFloat(urlLon),
+                });
+            }
+        } else if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    setDeviceLocation({
-                        lat: position.coords.latitude,
-                        lon: position.coords.longitude,
-                    });
+                    if (mounted) {
+                        setDeviceLocation({
+                            lat: position.coords.latitude,
+                            lon: position.coords.longitude,
+                        });
+                    }
                 },
                 (err) => {
-                    console.error("Geolocation error", err);
+                    console.error("Geolocation error, falling back to IP geolocation", err);
+                    tryIPGeolocation();
                 },
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
+        } else {
+            // No geolocation API, use IP-based fallback directly
+            tryIPGeolocation();
         }
-    }, [deviceLocation]);
+
+        return () => {
+            mounted = false;
+        };
+    }, []);
 
     // Handlers
     const saveLayout = (newLayout: typeof layout) => {
         setLayout(newLayout);
-        localStorage.setItem("enroute_layout_v1", JSON.stringify(newLayout));
+        localStorage.setItem("enroute_layout_v2", JSON.stringify(newLayout));
     };
 
     const updateGridSize = (rows: number, cols: number) => {
@@ -151,7 +188,7 @@ function DefaultDisplayContent(): JSX.Element {
                 p.id === id ? { ...p, ...updates } : p
             );
             const newLayout = { ...prevLayout, panes: newPanes };
-            localStorage.setItem("enroute_layout_v1", JSON.stringify(newLayout));
+            localStorage.setItem("enroute_layout_v2", JSON.stringify(newLayout));
             return newLayout;
         });
     }, []);

@@ -48,10 +48,10 @@ const Pane: React.FC<PaneProps> = ({
     };
     const paneStyle = (getSetting("pane_style") || "default") as "default" | "flush";
     // Derived Configuration
-    const effectiveLocation = config.location || deviceLocation;
     const radius = config.radius || 1500;
 
     // State
+    const [resolvedLocation, setResolvedLocation] = useState<{ lat: number; lon: number } | null>(config.location || deviceLocation || null);
     const [nearbyData, setNearbyData] = useState<NearbyDeparturesFromCoordsV2Response | null>(() => externalNearbyData || null);
     const [stopData, setStopData] = useState<DeparturesAtStopResponse | null>(() => externalStopData || null);
     const [loading, setLoading] = useState(true);
@@ -59,6 +59,35 @@ const Pane: React.FC<PaneProps> = ({
     const [minuteTick, setMinuteTick] = useState(0);
     const [dynamicPanes, setDynamicPanes] = useState<any[]>([]);
     const [dynamicDisplaysState, setDynamicDisplays] = useState<any[]>([]);
+
+    // IP Geolocation fallback effect
+    useEffect(() => {
+        let mounted = true;
+        const currentLocation = config.location || deviceLocation;
+
+        if (!currentLocation) {
+            // Try IP-based geolocation as fallback
+            fetch("https://cf-object.quacksire.workers.dev/")
+                .then((res) => res.json())
+                .then((data) => {
+                    if (mounted && data.latitude && data.longitude) {
+                        setResolvedLocation({
+                            lat: parseFloat(data.latitude),
+                            lon: parseFloat(data.longitude),
+                        });
+                    }
+                })
+                .catch((err) => {
+                    console.error("IP geolocation fallback failed in Pane", err);
+                });
+        } else {
+            setResolvedLocation(currentLocation);
+        }
+
+        return () => {
+            mounted = false;
+        };
+    }, [config.location, deviceLocation]);
 
     // Fetch Logic
     useEffect(() => {
@@ -76,11 +105,10 @@ const Pane: React.FC<PaneProps> = ({
         }
 
         const fetchData = async () => {
-            if (!effectiveLocation) {
+            if (!resolvedLocation) {
                 if (mounted) {
                     setLoading(false);
-                    // Only show error if no deviceLocation prop was passed at all
-                    // If deviceLocation is null but was passed, it means we're waiting for geolocation
+                    // Only show error if no location could be resolved
                     setError("No location configured");
                 }
                 return;
@@ -92,7 +120,7 @@ const Pane: React.FC<PaneProps> = ({
                 setLoading(true);
             }
 
-            const url = `https://birch.catenarymaps.org/nearbydeparturesfromcoordsv2?lat=${effectiveLocation.lat}&lon=${effectiveLocation.lon}&radius=${radius}`;
+            const url = `https://birch.catenarymaps.org/nearbydeparturesfromcoordsv2?lat=${resolvedLocation.lat}&lon=${resolvedLocation.lon}&radius=${radius}`;
 
             try {
                 const res = await fetch(url);
@@ -112,7 +140,7 @@ const Pane: React.FC<PaneProps> = ({
             }
         };
 
-        if (effectiveLocation) {
+        if (resolvedLocation) {
             fetchData();
             intervalId = setInterval(fetchData, 30000);
         } else {
@@ -125,8 +153,8 @@ const Pane: React.FC<PaneProps> = ({
             if (intervalId) clearInterval(intervalId);
         };
     }, [
-        // Using stringified effectiveLocation to avoid deep dependency issues if object ref changes
-        effectiveLocation ? `${effectiveLocation.lat},${effectiveLocation.lon}` : null,
+        // Using stringified resolvedLocation to avoid deep dependency issues if object ref changes
+        resolvedLocation ? `${resolvedLocation.lat},${resolvedLocation.lon}` : null,
         radius,
         externalStopData,
     ]);
@@ -146,8 +174,8 @@ const Pane: React.FC<PaneProps> = ({
     }, [stopData, nearbyData]);
     console.log("Pane activeData:", activeData);
     const allDepartures = useMemo(
-        () => flattenDepartures(activeData, use24h, minuteTick, effectiveLocation || undefined, radius),
-        [activeData, use24h, minuteTick, effectiveLocation, radius]
+        () => flattenDepartures(activeData, use24h, minuteTick, resolvedLocation || undefined, radius),
+        [activeData, use24h, minuteTick, resolvedLocation, radius]
     );
 
     console.log("Pane allDepartures:", allDepartures);

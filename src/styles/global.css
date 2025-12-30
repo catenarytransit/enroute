@@ -37,6 +37,7 @@
   --font-nimbus: 'Nimbus Sans', sans-serif;
   --font-noto: 'Noto Sans', sans-serif;
   --font-fira: 'Fira Sans', sans-serif;
+  --font-jetbrains-mono: 'JetBrains Mono', monospace;
 }
 
 :root {

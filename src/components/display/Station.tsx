@@ -62,20 +62,20 @@ function StationContent(): JSX.Element {
     };
 
     const [layout, setLayout] = useState<{ rows: number; cols: number; panes: PaneConfig[] }>(() => {
-        if (typeof window === "undefined") return defaultLayout;
-        const saved = localStorage.getItem("enroute_station_layout_v1");
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                if (parsed.rows && parsed.cols && Array.isArray(parsed.panes)) {
-                    return parsed;
-                }
-            } catch (e) {
-                console.error("Failed to load station layout", e);
-            }
-        }
-        return defaultLayout;
-    });
+         if (typeof window === "undefined") return defaultLayout;
+         const saved = localStorage.getItem("enroute_station_layout_v2");
+         if (saved) {
+             try {
+                 const parsed = JSON.parse(saved);
+                 if (parsed.rows && parsed.cols && Array.isArray(parsed.panes)) {
+                     return parsed;
+                 }
+             } catch (e) {
+                 console.error("Failed to load station layout", e);
+             }
+         }
+         return defaultLayout;
+     });
 
     const announcerRef = useRef<any>(null);
 
@@ -159,7 +159,7 @@ function StationContent(): JSX.Element {
 
     const saveLayout = (newLayout: typeof layout) => {
         setLayout(newLayout);
-        localStorage.setItem("enroute_station_layout_v1", JSON.stringify(newLayout));
+        localStorage.setItem("enroute_station_layout_v2", JSON.stringify(newLayout));
     };
 
     const updateGridSize = (rows: number, cols: number) => {
@@ -187,7 +187,7 @@ function StationContent(): JSX.Element {
                 p.id === id ? { ...p, ...updates } : p
             );
             const newLayout = { ...prevLayout, panes: newPanes };
-            localStorage.setItem("enroute_station_layout_v1", JSON.stringify(newLayout));
+            localStorage.setItem("enroute_station_layout_v2", JSON.stringify(newLayout));
             return newLayout;
         });
     }, []);
@@ -203,6 +203,7 @@ function StationContent(): JSX.Element {
     }, [handlePaneSave]);
 
     const resetLayout = () => {
+        // @ts-ignore
         saveLayout(defaultLayout);
     };
 
