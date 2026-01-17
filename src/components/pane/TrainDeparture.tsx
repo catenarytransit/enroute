@@ -71,7 +71,7 @@ export default function TrainDeparture({ displayItems, config, theme, clickableT
                                 )}
                                 {item.cancelled && (
                                     <div className="flex items-center gap-1">
-                                        <span className="text-xs text-red-400">Canceled</span>
+                                        <span className="text-xs text-red-400">Cancelled</span>
                                     </div>
                                 )}
                             </td>
